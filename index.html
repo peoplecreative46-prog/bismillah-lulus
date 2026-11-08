@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Simulasi CAT BKN — SKD CPNS 2024/2025</title>
+<style>
+:root{
+  --blue:#0d3b8c; --blue-d:#092a66; --blue-l:#eaf1fd;
+  --gold:#f5b301; --green:#1e9e58; --yellow:#ffd54a; --orange:#ff9800;
+  --red:#d64541; --ink:#1f2a3d; --grey:#eef1f6; --line:#c9d3e0;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:"Segoe UI",system-ui,Arial,sans-serif;background:var(--grey);color:var(--ink);min-height:100vh}
+.screen{display:none}.screen.active{display:block}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:none;cursor:pointer;font-weight:600;border-radius:8px;padding:11px 22px;font-size:14px;transition:.15s}
+.btn-primary{background:linear-gradient(180deg,#1d5bd0,#0d3b8c);color:#fff;box-shadow:0 2px 6px rgba(13,59,140,.35)}
+.btn-primary:hover{filter:brightness(1.1)}
+.btn-ghost{background:#fff;border:1.5px solid var(--line);color:var(--ink)}
+.btn-ghost:hover{border-color:var(--blue);color:var(--blue)}
+.btn-warn{background:linear-gradient(180deg,#ffb037,#e8890b);color:#fff}
+.btn-danger{background:linear-gradient(180deg,#e2564b,#b93429);color:#fff}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+
+/* ===== LOGIN ===== */
+#loginScreen{min-height:100vh;display:none;background:linear-gradient(135deg,#092a66 0%,#0d3b8c 55%,#123f8f 100%)}
+#loginScreen.active{display:flex;align-items:center;justify-content:center;padding:20px}
+.login-box{width:100%;max-width:960px;display:grid;grid-template-columns:1fr 1fr;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 25px 60px rgba(0,0,0,.35)}
+.login-left{background:linear-gradient(160deg,#0a2f6e,#123f8f);color:#fff;padding:46px 38px;display:flex;flex-direction:column;justify-content:center}
+.brand-badge{width:84px;height:96px;margin-bottom:18px}
+.login-left h1{font-size:26px;letter-spacing:1px}
+.login-left h1 span{color:var(--gold)}
+.login-left p{margin-top:12px;font-size:13.5px;line-height:1.7;color:#cfe0ff}
+.login-left ul{margin-top:16px;font-size:12.5px;color:#bcd2f7;list-style:none}
+.login-left ul li{margin-bottom:7px;padding-left:20px;position:relative}
+.login-left ul li::before{content:"✔";position:absolute;left:0;color:var(--gold)}
+.login-right{padding:46px 42px}
+.login-right h2{font-size:19px;color:var(--blue-d);margin-bottom:4px}
+.login-right .sub{font-size:12.5px;color:#748199;margin-bottom:24px}
+.field{margin-bottom:16px}
+.field label{display:block;font-size:12.5px;font-weight:600;color:#4a5a74;margin-bottom:6px}
+.field input{width:100%;padding:11px 13px;border:1.5px solid var(--line);border-radius:8px;font-size:14px;outline:none;transition:.15s}
+.field input:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(13,59,140,.12)}
+.field input.err{border-color:var(--red)}
+.errmsg{font-size:12px;color:var(--red);margin-top:5px;display:none}
+.login-hint{margin-top:14px;font-size:11.5px;color:#8a97ac;line-height:1.6;background:#f5f7fb;border-radius:8px;padding:10px 12px}
+
+/* ===== TOP BAR (exam) ===== */
+.topbar{position:sticky;top:0;z-index:50;background:linear-gradient(90deg,#092a66,#0d3b8c);color:#fff;display:flex;align-items:center;gap:16px;padding:0 20px;height:64px;box-shadow:0 2px 8px rgba(0,0,0,.25)}
+.topbar .brand{display:flex;align-items:center;gap:10px;font-weight:800;font-size:16px;letter-spacing:.5px}
+.topbar .brand svg{width:34px;height:40px}
+.topbar .brand small{display:block;font-size:9.5px;font-weight:500;color:#a9c3f0;letter-spacing:1.4px}
+.participant{flex:1;text-align:center;font-size:13px;line-height:1.4}
+.participant b{font-size:14.5px;color:var(--gold)}
+.timerbox{background:#04101f;border:2px solid #23407a;border-radius:10px;padding:6px 16px;text-align:center;min-width:128px}
+.timerbox .t-label{font-size:9.5px;letter-spacing:2px;color:#7fa2dd}
+.timerbox .t-val{font-family:"Consolas",monospace;font-size:24px;font-weight:700;color:#4dff8d;line-height:1.1}
+.timerbox.danger .t-val{color:#ff5b52;animation:blink 1s infinite}
+@keyframes blink{50%{opacity:.45}}
+.progressline{height:5px;background:#c8d4e8}
+.progressline i{display:block;height:100%;background:linear-gradient(90deg,#f5b301,#ffd54a);width:0;transition:.3s}
+
+/* ===== EXAM LAYOUT ===== */
+.exam-wrap{display:grid;grid-template-columns:1fr 318px;gap:16px;max-width:1280px;margin:0 auto;padding:16px}
+.qcard{background:#fff;border-radius:12px;box-shadow:0 3px 14px rgba(15,40,90,.08);padding:24px 26px;display:flex;flex-direction:column;min-height:480px}
+.qhead{display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap}
+.badge{font-size:11.5px;font-weight:700;padding:5px 12px;border-radius:20px;color:#fff;letter-spacing:.4px}
+.badge.twk{background:#0d3b8c}.badge.tiu{background:#0f8a76}.badge.tkp{background:#7b43b5}
+.badge.topic{background:#eef1f6;color:#41506b;font-weight:600}
+.qnum{margin-left:auto;font-size:13px;font-weight:700;color:#41506b}
+.qtext{font-size:15.5px;line-height:1.75;margin-bottom:20px;white-space:pre-wrap}
+.opts{display:flex;flex-direction:column;gap:10px}
+.opt{display:flex;align-items:flex-start;gap:12px;border:1.5px solid var(--line);border-radius:10px;padding:13px 15px;cursor:pointer;transition:.13s;font-size:14.5px;line-height:1.55;background:#fff}
+.opt:hover{border-color:#7fa2dd;background:#f6f9ff}
+.opt .ltr{flex:0 0 30px;height:30px;border:1.5px solid var(--line);border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;background:#fff}
+.opt.sel{border-color:var(--blue);background:var(--blue-l);box-shadow:0 0 0 3px rgba(13,59,140,.12)}
+.opt.sel .ltr{background:var(--blue);color:#fff;border-color:var(--blue)}
+.navbtns{display:flex;gap:10px;margin-top:auto;padding-top:22px;flex-wrap:wrap}
+.navbtns .spacer{flex:1}
+.kbd-hint{margin-top:12px;font-size:11px;color:#93a0b4}
+
+/* ===== SIDEBAR ===== */
+.side{display:flex;flex-direction:column;gap:14px}
+.side-card{background:#fff;border-radius:12px;box-shadow:0 3px 14px rgba(15,40,90,.08);padding:16px}
+.side-card h3{font-size:13px;color:var(--blue-d);margin-bottom:10px;letter-spacing:.3px;text-transform:uppercase}
+.grid-num{display:grid;grid-template-columns:repeat(10,1fr);gap:5px}
+.nbtn{aspect-ratio:1;border:1.5px solid var(--line);background:#fff;border-radius:6px;font-size:12px;font-weight:700;color:#41506b;cursor:pointer;transition:.1s;padding:0}
+.nbtn:hover{border-color:var(--blue)}
+.nbtn.done{background:var(--green);border-color:var(--green);color:#fff}
+.nbtn.ragu{background:var(--orange);border-color:var(--orange);color:#fff}
+.nbtn.cur{background:var(--yellow);border-color:#d9a400;color:#3d3200;box-shadow:0 0 0 3px rgba(245,179,1,.3)}
+.legend{display:flex;flex-direction:column;gap:7px;font-size:12px;color:#41506b;margin-top:12px}
+.legend div{display:flex;align-items:center;gap:8px}
+.legend i{width:15px;height:15px;border-radius:4px;display:inline-block;border:1px solid var(--line)}
+.stat{font-size:13px;color:#41506b;display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px dashed #e3e9f2}
+.stat b{color:var(--blue-d)}
+
+/* ===== INSTRUKSI ===== */
+.inst-wrap{max-width:880px;margin:30px auto;padding:0 16px}
+.inst-card{background:#fff;border-radius:14px;box-shadow:0 6px 24px rgba(15,40,90,.1);overflow:hidden}
+.inst-head{background:linear-gradient(90deg,#092a66,#0d3b8c);color:#fff;padding:22px 30px;display:flex;align-items:center;gap:14px}
+.inst-head svg{width:40px;height:46px}
+.inst-head h2{font-size:19px}
+.inst-head p{font-size:12px;color:#a9c3f0}
+.inst-body{padding:26px 30px}
+.pcard{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;background:#f5f8fd;border:1px solid #dbe5f3;border-radius:10px;padding:16px;margin-bottom:20px}
+.pcard div{font-size:13px;color:#41506b}
+.pcard div b{display:block;font-size:14.5px;color:var(--blue-d)}
+.inst-body h3{font-size:14.5px;color:var(--blue-d);margin:18px 0 8px;border-left:4px solid var(--gold);padding-left:10px}
+.inst-body ol,.inst-body ul{margin-left:22px;font-size:13.5px;line-height:1.85;color:#3d4a61}
+.pgtable{width:100%;border-collapse:collapse;margin-top:8px;font-size:13px}
+.pgtable th,.pgtable td{border:1px solid #dbe5f3;padding:8px 12px;text-align:left}
+.pgtable th{background:#eef4fd;color:var(--blue-d)}
+.inst-foot{padding:18px 30px;background:#f7f9fc;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px}
+.inst-foot small{font-size:11px;color:#8a97ac}
+
+/* ===== MODAL ===== */
+.overlay{position:fixed;inset:0;background:rgba(8,20,45,.62);display:none;align-items:center;justify-content:center;z-index:100;padding:16px}
+.overlay.show{display:flex}
+.modal{background:#fff;border-radius:14px;max-width:460px;width:100%;padding:28px;box-shadow:0 20px 60px rgba(0,0,0,.35);animation:pop .18s ease}
+@keyframes pop{from{transform:scale(.92);opacity:0}}
+.modal h3{color:var(--blue-d);font-size:17px;margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.modal p{font-size:13.5px;color:#4a5a74;line-height:1.7;margin-bottom:18px}
+.modal .mbtns{display:flex;gap:10px;justify-content:flex-end}
+.spinner{width:38px;height:38px;border:4px solid #dbe5f3;border-top-color:var(--blue);border-radius:50%;margin:0 auto 14px;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ===== RESULT ===== */
+.res-wrap{max-width:980px;margin:26px auto;padding:0 16px}
+.res-hero{background:linear-gradient(135deg,#092a66,#0d3b8c);border-radius:16px;color:#fff;padding:32px;text-align:center;position:relative;overflow:hidden}
+.res-hero .big{font-size:40px;font-weight:800;margin:6px 0}
+.pill{display:inline-block;padding:8px 26px;border-radius:30px;font-weight:800;font-size:17px;letter-spacing:1px}
+.pill.lulus{background:#1e9e58}.pill.gagal{background:#d64541}
+.res-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:18px}
+.res-cell{background:rgba(255,255,255,.09);border:1px solid rgba(255,255,255,.18);border-radius:12px;padding:14px}
+.res-cell .lbl{font-size:11.5px;color:#bcd2f7;letter-spacing:.6px}
+.res-cell .val{font-size:26px;font-weight:800;margin:4px 0}
+.res-cell .pg{font-size:11.5px;color:#ffd54a}
+.res-cell .ok{color:#68f0a1;font-weight:700}.res-cell .no{color:#ff8d86;font-weight:700}
+.bar{height:6px;background:rgba(255,255,255,.18);border-radius:4px;margin-top:8px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--gold);border-radius:4px}
+.res-cards{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:16px}
+.res-card{background:#fff;border-radius:12px;box-shadow:0 3px 14px rgba(15,40,90,.08);padding:22px}
+.res-card h3{font-size:15px;color:var(--blue-d);margin-bottom:12px}
+.rrow{display:flex;justify-content:space-between;align-items:center;font-size:13.5px;padding:9px 0;border-bottom:1px dashed #e3e9f2}
+.rrow .tag{font-size:11px;font-weight:700;padding:3px 10px;border-radius:12px}
+.tag.ok{background:#e2f7ea;color:#157a44}.tag.no{background:#fde8e7;color:#b93429}
+.review{display:none}.review.show{display:block}
+.rv-sec{margin-top:14px}
+.rv-sec h4{font-size:13.5px;background:var(--blue-l);color:var(--blue-d);padding:8px 12px;border-radius:8px;margin-bottom:8px}
+.rv-item{border:1px solid #e3e9f2;border-radius:10px;padding:12px 14px;margin-bottom:10px;font-size:13px;background:#fff}
+.rv-item .rq{font-weight:600;margin-bottom:8px;line-height:1.6}
+.rv-opt{padding:6px 10px;border-radius:6px;margin-bottom:4px;line-height:1.5;border:1px solid transparent}
+.rv-opt.user{border-color:var(--blue);background:var(--blue-l)}
+.rv-opt.key{border-color:var(--green);background:#e2f7ea}
+.rv-opt .pt{float:right;font-size:11px;color:#8a97ac}
+.toast{position:fixed;left:18px;bottom:18px;background:#17335f;color:#fff;font-size:12.5px;padding:10px 16px;border-radius:8px;opacity:0;transform:translateY(8px);transition:.25s;z-index:90;pointer-events:none}
+.toast.show{opacity:1;transform:translateY(0)}
+@media(max-width:900px){.exam-wrap{grid-template-columns:1fr}.res-grid{grid-template-columns:repeat(2,1fr)}.res-cards{grid-template-columns:1fr}.login-box{grid-template-columns:1fr}.participant{display:none}}
+</style>
+</head>
+<body>
+
+<!-- ================= LOGIN ================= -->
+<div id="loginScreen" class="screen active">
+  <div class="login-box">
+    <div class="login-left">
+      <svg class="brand-badge" viewBox="0 0 84 96"><path d="M42 2 80 14v34c0 24-16 38-38 46C20 86 4 72 4 48V14Z" fill="#f5b301"/><path d="M42 8 74 18v30c0 20-13.5 32.5-32 39.5C23.5 80.5 10 68 10 48V18Z" fill="#0d3b8c"/><path d="m42 24 5.2 10.9 12 1.6-8.8 8.3 2.2 11.9L42 51l-10.6 5.7 2.2-11.9-8.8-8.3 12-1.6Z" fill="#f5b301"/><text x="42" y="76" text-anchor="middle" font-size="11" font-weight="bold" fill="#fff" font-family="Arial">BKN</text></svg>
+      <h1>SIMULASI <span>CAT BKN</span></h1>
+      <p>Sistem Seleksi Kompetensi Dasar (SKD) CPNS berbasis Computer Assisted Test — Tahun Anggaran 2024/2025.</p>
+      <ul>
+        <li>110 soal: TWK (30) · TIU (35) · TKP (45)</li>
+        <li>Durasi ujian 100 menit</li>
+        <li>Nilai &amp; status kelulusan tampil otomatis</li>
+        <li>Passing grade sesuai Permenpan RB No. 27/2021</li>
+      </ul>
+    </div>
+    <div class="login-right">
+      <h2>LOGIN PESERTA</h2>
+      <div class="sub">Masukkan data peserta untuk memulai sesi ujian</div>
+      <div class="field"><label>Nama Lengkap</label><input id="inpNama" placeholder="cth: Ahmad Fauzi" maxlength="60"></div>
+      <div class="field"><label>NIK (16 digit)</label><input id="inpNIK" placeholder="3271xxxxxxxxxxxx" maxlength="16" inputmode="numeric">
+        <div class="errmsg" id="errNIK">NIK harus 16 digit angka.</div></div>
+      <div class="field"><label>Nomor Peserta Ujian</label><input id="inpNoPeserta" placeholder="cth: 24-3010-1104-0000123" maxlength="30"></div>
+      <div class="field"><label>PIN Sesi Ujian</label><input id="inpPIN" type="password" placeholder="••••••" maxlength="6"></div>
+      <button class="btn btn-primary" style="width:100%" onclick="doLogin()">MASUK KE RUANG UJIAN</button>
+      <div class="login-hint">ℹ️ <b>Mode simulasi:</b> seluruh kolom dapat diisi bebas (NIK tetap harus 16 digit). Data hanya dipakai untuk tampilan layar ujian dan tidak dikirim ke mana pun.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ================= INSTRUKSI ================= -->
+<div id="instScreen" class="screen">
+  <div class="topbar">
+    <div class="brand"><svg viewBox="0 0 84 96"><path d="M42 2 80 14v34c0 24-16 38-38 46C20 86 4 72 4 48V14Z" fill="#f5b301"/><path d="M42 8 74 18v30c0 20-13.5 32.5-32 39.5C23.5 80.5 10 68 10 48V18Z" fill="#0d3b8c"/><path d="m42 24 5.2 10.9 12 1.6-8.8 8.3 2.2 11.9L42 51l-10.6 5.7 2.2-11.9-8.8-8.3 12-1.6Z" fill="#f5b301"/></svg>
+      <div>SIMULASI CAT BKN<small>BADAN KEPEGAWAIAN NEGARA</small></div></div>
+    <div class="participant"><b id="pNama1">—</b><br><span id="pNo1">—</span></div>
+    <div class="timerbox"><div class="t-label">WAKTU UJIAN</div><div class="t-val">100:00</div></div>
+  </div>
+  <div class="inst-wrap">
+    <div class="inst-card">
+      <div class="inst-head">
+        <svg viewBox="0 0 84 96"><path d="M42 2 80 14v34c0 24-16 38-38 46C20 86 4 72 4 48V14Z" fill="#f5b301"/><path d="M42 8 74 18v30c0 20-13.5 32.5-32 39.5C23.5 80.5 10 68 10 48V18Z" fill="#0d3b8c"/><path d="m42 24 5.2 10.9 12 1.6-8.8 8.3 2.2 11.9L42 51l-10.6 5.7 2.2-11.9-8.8-8.3 12-1.6Z" fill="#f5b301"/></svg>
+        <div><h2>KONFIRMASI DATA PESERTA &amp; TATA TERTIB</h2><p>Seleksi Kompetensi Dasar (SKD) — CPNS 2024/2025</p></div>
+      </div>
+      <div class="inst-body">
+        <div class="pcard">
+          <div>Nama Peserta<b id="pNama2">—</b></div>
+          <div>NIK<b id="pNIK2">—</b></div>
+          <div>No. Peserta<b id="pNo2">—</b></div>
+          <div>Sesi / Lokasi<b>Simulasi / CAT Mandiri</b></div>
+        </div>
+        <h3>Materi &amp; Alokasi Waktu</h3>
+        <ul>
+          <li>Tes Wawasan Kebangsaan (TWK) — 30 soal · bobot benar = 5, salah/kosong = 0</li>
+          <li>Tes Intelegensia Umum (TIU) — 35 soal · bobot benar = 5, salah/kosong = 0</li>
+          <li>Tes Karakteristik Pribadi (TKP) — 45 soal · bobot jawaban 1 s.d. 5, kosong = 0</li>
+          <li>Total 110 soal, waktu <b>100 menit</b> (hitung mundur otomatis, sistem mengunci ujian saat waktu habis)</li>
+        </ul>
+        <h3>Passing Grade (Permenpan RB No. 27 Tahun 2021)</h3>
+        <table class="pgtable">
+          <tr><th>Subtes</th><th>Jumlah Soal</th><th>Nilai Maksimal</th><th>Passing Grade</th></tr>
+          <tr><td>TWK</td><td>30</td><td>150</td><td>65</td></tr>
+          <tr><td>TIU</td><td>35</td><td>175</td><td>80</td></tr>
+          <tr><td>TKP</td><td>45</td><td>225</td><td>166</td></tr>
+          <tr><td><b>Total</b></td><td><b>110</b></td><td><b>550</b></td><td><b>Lulus jika ketiganya memenuhi</b></td></tr>
+        </table>
+        <h3>Tata Tertib &amp; Petunjuk Pengerjaan</h3>
+        <ol>
+          <li>Klik salah satu pilihan jawaban (A–E) untuk menjawab; jawaban tersimpan otomatis.</li>
+          <li>Gunakan panel <b>Nomor Soal</b> di kanan untuk berpindah soal. Kotak <b>kuning</b> = soal aktif, <b>hijau</b> = terjawab, <b>oranye</b> = ragu-ragu, <b>putih</b> = belum dijawab.</li>
+          <li>Tombol <b>Ragu-Ragu</b> hanya sebagai penanda dan tidak memengaruhi nilai.</li>
+          <li>Tekan <b>Simpan &amp; Lanjutkan</b> untuk berpindah ke soal berikutnya.</li>
+          <li>Tombol keyboard: <b>A–E</b> memilih jawaban, <b>←/→</b> pindah soal.</li>
+          <li>Jika waktu habis, sistem otomatis mengakhiri ujian dan menampilkan nilai.</li>
+        </ol>
+      </div>
+      <div class="inst-foot">
+        <small>Dengan menekan tombol di samping, Anda menyetujui tata tertib ujian simulasi ini.</small>
+        <button class="btn btn-primary" style="padding:14px 40px;font-size:16px" onclick="startExam()">▶ MULAI UJIAN</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================= EXAM ================= -->
+<div id="examScreen" class="screen">
+  <div class="topbar">
+    <div class="brand"><svg viewBox="0 0 84 96"><path d="M42 2 80 14v34c0 24-16 38-38 46C20 86 4 72 4 48V14Z" fill="#f5b301"/><path d="M42 8 74 18v30c0 20-13.5 32.5-32 39.5C23.5 80.5 10 68 10 48V18Z" fill="#0d3b8c"/><path d="m42 24 5.2 10.9 12 1.6-8.8 8.3 2.2 11.9L42 51l-10.6 5.7 2.2-11.9-8.8-8.3 12-1.6Z" fill="#f5b301"/></svg>
+      <div>SKD CPNS — CAT BKN<small>SELEKSI KOMPETENSI DASAR</small></div></div>
+    <div class="participant"><b id="pNama3">—</b><br><span id="pNo3">—</span></div>
+    <div class="timerbox" id="timerBox"><div class="t-label">SISA WAKTU</div><div class="t-val" id="timerVal">01:40:00</div></div>
+  </div>
+  <div class="progressline"><i id="progBar"></i></div>
+
+  <div class="exam-wrap">
+    <div>
+      <div class="qcard">
+        <div class="qhead">
+          <span class="badge" id="secBadge">TWK</span>
+          <span class="badge topic" id="topicBadge">Integritas</span>
+          <span class="qnum" id="qCounter">Soal 1 dari 110</span>
+        </div>
+        <div class="qtext" id="qText"></div>
+        <div class="opts" id="optList"></div>
+        <div class="navbtns">
+          <button class="btn btn-ghost" id="btnPrev" onclick="prevQ()">‹ Sebelumnya</button>
+          <button class="btn btn-warn" id="btnRagu" onclick="toggleRagu()">🚩 Ragu-Ragu</button>
+          <div class="spacer"></div>
+          <button class="btn btn-primary" id="btnNext" onclick="nextQ()">Simpan &amp; Lanjutkan ›</button>
+          <button class="btn btn-danger" onclick="askFinish()">Selesai Ujian</button>
+        </div>
+        <div class="kbd-hint">Keyboard: A–E pilih jawaban · ← → pindah soal</div>
+      </div>
+    </div>
+
+    <div class="side">
+      <div class="side-card">
+        <h3>Nomor Soal</h3>
+        <div class="grid-num" id="numGrid"></div>
+        <div class="legend">
+          <div><i style="background:var(--yellow);border-color:#d9a400"></i> Soal aktif</div>
+          <div><i style="background:var(--green);border-color:var(--green)"></i> Sudah dijawab</div>
+          <div><i style="background:var(--orange);border-color:var(--orange)"></i> Ragu-ragu</div>
+          <div><i style="background:#fff"></i> Belum dijawab</div>
+        </div>
+      </div>
+      <div class="side-card">
+        <h3>Status Pengerjaan</h3>
+        <div class="stat"><span>Terjawab</span><b id="stDone">0 / 110</b></div>
+        <div class="stat"><span>Belum dijawab</span><b id="stLeft">110</b></div>
+        <div class="stat" style="border:none"><span>Ditandai ragu</span><b id="stRagu">0</b></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================= RESULT ================= -->
+<div id="resultScreen" class="screen">
+  <div class="topbar">
+    <div class="brand"><svg viewBox="0 0 84 96"><path d="M42 2 80 14v34c0 24-16 38-38 46C20 86 4 72 4 48V14Z" fill="#f5b301"/><path d="M42 8 74 18v30c0 20-13.5 32.5-32 39.5C23.5 80.5 10 68 10 48V18Z" fill="#0d3b8c"/><path d="m42 24 5.2 10.9 12 1.6-8.8 8.3 2.2 11.9L42 51l-10.6 5.7 2.2-11.9-8.8-8.3 12-1.6Z" fill="#f5b301"/></svg>
+      <div>HASIL UJIAN SKD<small>SIMULASI CAT BKN 2024/2025</small></div></div>
+    <div class="participant"><b id="pNama4">—</b><br><span id="pNo4">—</span></div>
+  </div>
+  <div class="res-wrap">
+    <div class="res-hero">
+      <div style="font-size:13px;letter-spacing:2px;color:#bcd2f7">STATUS KELULUSAN SKD</div>
+      <div class="big" id="resStatusText">—</div>
+      <div id="resPill" class="pill lulus">—</div>
+      <div class="res-grid" id="resGrid"></div>
+    </div>
+    <div class="res-cards">
+      <div class="res-card">
+        <h3>📊 Rincian Nilai per Subtes</h3>
+        <div id="resDetail"></div>
+      </div>
+      <div class="res-card">
+        <h3>📝 Catatan Sistem</h3>
+        <div id="resNote" style="font-size:13px;color:#4a5a74;line-height:1.8"></div>
+        <div style="display:flex;gap:10px;margin-top:18px;flex-wrap:wrap">
+          <button class="btn btn-ghost" onclick="toggleReview()">🔍 Lihat Kunci &amp; Jawaban Saya</button>
+          <button class="btn btn-primary" onclick="location.reload()">↻ Ulangi Simulasi</button>
+        </div>
+      </div>
+    </div>
+    <div class="review" id="reviewBox"></div>
+    <p style="text-align:center;font-size:11.5px;color:#8a97ac;margin:22px 0">Simulasi mandiri untuk latihan — mengacu format CAT BKN &amp; Permenpan RB No. 27/2021. Bukan situs resmi BKN.<br>Soal: The Master SKD CPNS &amp; Kedinasan 2024/2025 (Sang Tutor / CV Ruang Tentor).</p>
+  </div>
+</div>
+
+<!-- ================= MODALS ================= -->
+<div class="overlay" id="loadOverlay"><div class="modal" style="text-align:center"><div class="spinner"></div><h3 style="justify-content:center">Memvalidasi data peserta…</h3><p style="margin:0">Menghubungkan ke server CAT BKN (simulasi)</p></div></div>
+<div class="overlay" id="finishOverlay"><div class="modal">
+  <h3>⚠️ Akhiri Ujian?</h3>
+  <p id="finishMsg"></p>
+  <div class="mbtns"><button class="btn btn-ghost" onclick="closeModal('finishOverlay')">Kembali Mengerjakan</button>
+  <button class="btn btn-danger" onclick="endExam(false)">Ya, Akhiri Ujian</button></div>
+</div></div>
+<div class="overlay" id="warnOverlay"><div class="modal">
+  <h3>⏰ Peringatan Waktu</h3><p>Sisa waktu ujian Anda <b>kurang dari 5 menit</b>. Periksa kembali jawaban Anda. Sistem akan mengakhiri ujian secara otomatis saat waktu habis.</p>
+  <div class="mbtns"><button class="btn btn-primary" onclick="closeModal('warnOverlay')">Mengerti</button></div>
+</div></div>
+<div class="overlay" id="timeupOverlay"><div class="modal">
+  <h3>⌛ Waktu Habis</h3><p>Waktu ujian telah berakhir. Sistem mengunci pengerjaan dan menghitung nilai Anda secara otomatis.</p>
+  <div class="mbtns"><button class="btn btn-primary" onclick="closeModal('timeupOverlay');endExam(true)">Lihat Hasil</button></div>
+</div></div>
+
+<div class="toast" id="toast">✔ Jawaban tersimpan</div>
+
+<script>
+/* =====================================================================
+   BANK SOAL — TWK (30) · TIU (35) · TKP (45, bobot 1–5)
+   Sumber: The Master SKD CPNS & Kedinasan 2024/2025 (Sang Tutor)
+===================================================================== */
+const DATA=[
+/* ---------------- TWK : INTEGRITAS ---------------- */
+{s:"TWK",t:"Integritas",q:"Pahlawan yang berkontribusi dalam kebangkitan nasional, salah satunya adalah Soekarno. Menyandang predikat sebagai bapak bangsa, beliau memberikan kontribusi penting sebagai proklamator kemerdekaan Indonesia. Selain itu, Soekarno memiliki predikat orator yang andal sehingga membuat semangat persatuan, kesatuan, serta nasionalisme bangkit. Integritas Soekarno terhadap bangsa Indonesia tercermin dalam ....",o:["Karya-karya yang diakui oleh tokoh internasional","Perannya dalam memproklamasikan kemerdekaan Indonesia","Gaya komunikasi Soekarno yang andal dan berapi-api","Sebagai arsitek, ia banyak mengerjakan rancangan bangunan","Diakuinya Soekarno sebagai tokoh berpengaruh dunia"],k:1},
+{s:"TWK",t:"Integritas",q:"Pemerintah mewajibkan pengajaran muatan lokal di sekolah. Seorang guru kemudian menyambutnya dengan berinovasi terkait strategi pengajaran bahasa daerah bagi murid dari keluarga pendatang agar mereka bisa memahami materi dengan lebih baik. Apakah bukti adanya hubungan integritas dengan Bhinneka Tunggal Ika pada ilustrasi tersebut?",o:["Pemerintah mewujudkan janjinya untuk memajukan kebudayaan nasional","Mayoritas murid yang merupakan orang asli mendapatkan perhatian sekadarnya","Inovasi dilakukan guru untuk kepentingan siswanya","Guru menunjukkan kepeduliannya kepada murid yang berbahasa berbeda","Sekolah menjadi pusat pengembangan budaya lokal"],k:3},
+{s:"TWK",t:"Integritas",q:"Saudara diberikan tanggung jawab untuk membuat kaus untuk kegiatan mancakrida (outbound) kantor pada pekan depan. Tindakan yang bertentangan dengan integritas pada tugas tersebut adalah ....",o:["Mencari perusahaan konveksi yang berpengalaman dan berkualitas","Menginformasikan pembuatan kaos kepada panitia lain secara berkala","Menaikkan sedikit harga per kaos sebagai uang lelah dan pekerjaan tambahan","Memastikan bahwa kualitas kaos yang dibuat sebanding dengan harga yang diajukan","Melakukan jajak pendapat dahulu dalam menentukan desain yang akan dicetak"],k:2},
+{s:"TWK",t:"Integritas",q:"Indonesia merupakan negara yang memiliki beragam suku, sehingga kalau tidak mampu memahami dengan baik karakter suku-suku lain, konflik antarsuku akan mudah terjadi. Pernyataan ini menunjukkan bahwa jika menerapkan prinsip-prinsip Bhinneka Tunggal Ika untuk menguatkan integritas bangsa Indonesia, maka perilaku yang perlu dikembangkan adalah ....",o:["Menghormati perbedaan dan memiliki kesadaran bahwa setiap suku memiliki karakteristik yang berbeda","Menumbuhkan kesadaran bahwa suku sendiri harus ditonjolkan karena memiliki kelebihan-kelebihan","Menganggap bahwa keberadaan suku-suku yang berbeda di Indonesia merupakan salah satu penghalang persatuan","Membiarkan suku di Indonesia mengembangkan tradisi yang ada meskipun bertentangan dengan hukum","Mendorong pemerintah agar memberikan bantuan untuk pengembangan tradisi yang dimiliki oleh suku tertentu"],k:0},
+{s:"TWK",t:"Integritas",q:"Pemerintah memberikan bantuan sosial untuk masyarakat terdampak pandemi Covid-19. Namun pada pelaksanaannya, keluarga saudara yang tidak masuk dalam kriteria penerima bantuan malah mendapatkannya. Hal itu terjadi karena pihak penyalur di tingkat desa mendistribusikannya secara merata. Tindakan yang harus dihindari dalam menyikapi hal tersebut adalah ...",o:["Menerima bantuan sebagai sikap menghormati keputusan pemerintah desa","Mengembalikan bantuan karena tidak merasa berhak","Memberikan bantuan tersebut langsung kepada yang lebih membutuhkan","Mengkoordinasikan kepada pihak desa untuk didistribusikan kembali kepada yang lebih membutuhkan","Melaporkan penyaluran tidak tepat sasaran tersebut kepada pihak berwenang"],k:0},
+{s:"TWK",t:"Integritas",q:"Pada tanggal 20 Mei 1908, Soetomo mendirikan organisasi \u201CBudi Utomo\u201D yang menjadi organisasi modern pertama di Indonesia. Budi Utomo bertujuan memajukan bangsa Indonesia menjadi bangsa yang bermartabat dan mempertinggi cita-cita kemanusiaan. Perjuangan yang dilakukan Soetomo melalui Budi Utomo dalam kerangka integritas menunjukkan makna bahwa ....",o:["Organisasi modern menjadi faktor utama yang paling penting dan efektif untuk melakukan perlawanan terhadap penjajah","Perjuangan mencapai kemerdekaan dan cita-cita bersama lebih mudah dicapai jika terorganisir dengan baik dan terarah","Organisasi Budi Utomo merupakan organisasi modern pertama khusus untuk para bangsawan dan berpendidikan","Perlawanan terhadap pemerintah penjajahan Belanda tidak cukup hanya dengan menjalankan organisasi modern","Budi Utomo merupakan organisasi yang diinisiasi dan menjadi fokus oleh para dokter untuk kepentingan rakyat"],k:1},
+/* ---------------- TWK : NASIONALISME ---------------- */
+{s:"TWK",t:"Nasionalisme",q:"Salah satu contoh nilai persatuan Indonesia adalah bahwa semangat kebangsaan diarahkan pada perlindungan segenap bangsa dan seluruh tumpah darah Indonesia yang senasib sepenanggungan dalam bingkai NKRI. Bukti bahwa nilai tersebut digali dari budaya bangsa Indonesia adalah ...",o:["Perjuangan kemerdekaan dilakukan oleh semua rakyat Indonesia","Sikap patriotisme dan nasionalisme sudah tumbuh sejak masa penjajahan","Semangat rela berkorban untuk kemerdekaan bangsa Indonesia","Kerelaan bergabung menjadi bangsa Indonesia yang merdeka","Kuatnya rasa persatuan dalam memperjuangkan kemerdekaan Indonesia"],k:1},
+{s:"TWK",t:"Nasionalisme",q:"Peristiwa pada 28 Oktober 1928 merupakan tonggak penting dalam sejarah lahirnya bangsa Indonesia. Para pemuda dari berbagai suku dan daerah berkumpul untuk mengikrarkan sumpah yang dikenal dengan Sumpah Pemuda. Bercermin dari peristiwa sejarah tersebut, yang TIDAK termasuk nilai nasionalisme yang dapat digali dan diamalkan oleh generasi penerus bangsa adalah ...",o:["Kepedulian generasi muda terhadap nasib bangsa","Keberanian melawan kolonialisme","Mengorbankan semangat kesukuan dan kedaerahan dalam berjuang","Menunjukkan eksistensi generasi muda Indonesia saat itu kepada pihak kolonial","Semangat kebersamaan untuk berjuang"],k:3},
+{s:"TWK",t:"Nasionalisme",q:"Sebagai negara yang memiliki karakteristik multikultural, Indonesia rentan terhadap isu-isu eksklusivisme, intoleransi beragama, serta diskriminasi ras/etnis. Perbedaan makin tajam sehingga rentan menimbulkan permusuhan dalam masyarakat. Peran nasionalisme yang paling tepat untuk menghadapinya adalah ...",o:["Menghadiri berbagai forum lintas agama dan etnis dalam masyarakat","Mengenal berbagai ragam budaya dalam masyarakat","Menerapkan nilai-nilai Pancasila dalam sikap hidup sehari-hari","Aktif melakukan kegiatan sosial agar memiliki jiwa sosial","Bersikap objektif dan tidak terlibat dalam masalah politik"],k:2},
+{s:"TWK",t:"Nasionalisme",q:"UUD NRI 1945 Pasal 22E ayat (1) menyebutkan bahwa pemilu dilaksanakan secara langsung, umum, bebas, rahasia, jujur, dan adil setiap lima tahun sekali. Dari pernyataan pasal tersebut, perilaku yang mencerminkan sikap nasionalisme adalah ...",o:["Budi menggunakan hak pilihnya dalam pemilukada karena kewajiban sebagai warga negara","Arman menggunakan hak dalam pemilukada karena ada keluarganya yang mencalonkan diri","Dadang memaksa keluarga dan tetangganya agar memilih pasangan tertentu dalam pemilukada","Tuti menggunakan hak pilihnya dalam pemilu karena mendapat tugas dari sekolahnya","Marlena menggunakan hak pilih atas dasar hati nurani dan program kerja partai politik"],k:4},
+{s:"TWK",t:"Nasionalisme",q:"Salah satu pergerakan untuk mencapai kemerdekaan diwarnai oleh lahirnya Sarekat Dagang Islam yang didirikan oleh Haji Samanhudi di Solo pada 1911. Gerakan ini berusaha membangun kekuatan serta persatuan bangsa melalui penguatan dalam bidang ...",o:["Ekonomi melalui perlindungan pengusaha lokal agar mampu bersaing dengan pengusaha non lokal","Kebudayaan melalui pengembangan kesenian daerah agar mampu mengharumkan nama baik Indonesia","Pendidikan melalui pengajaran serta menjadi pemantik persatuan dan kesatuan bangsa Indonesia","Keagamaan yang memobilisasi gerakan rakyat dengan dasar keyakinan pada nilai-nilai Ketuhanan","Politik melalui pengembangan kebijakan yang berpihak pada masyarakat lokal dibanding masyarakat non lokal"],k:0},
+{s:"TWK",t:"Nasionalisme",q:"Meskipun berbeda etnis dan agama, masyarakat sukses mengadakan festival budaya tingkat desa dan mendapatkan respons positif dari warga dan pengunjung pada umumnya. Kegiatan tersebut merefleksikan bahwa ...",o:["Keberagaman menjadi penghambat untuk memupuk kebersamaan","Sikap saling mempercayai (mutual trust) dapat mendorong persatuan","Perbedaan bukanlah penghalang untuk memupuk persatuan dalam masyarakat","Kerja sama yang terjalin dengan perbedaan hanya bersifat temporal","Persatuan dalam keberagaman merupakan hal yang sulit untuk diwujudkan"],k:1},
+/* ---------------- TWK : BELA NEGARA ---------------- */
+{s:"TWK",t:"Bela Negara",q:"Salah satu ancaman terhadap NKRI adalah munculnya paham radikalisme yang ingin menggantikan ideologi Pancasila. Berikut ini perwujudan kekuatan bangsa di bidang ideologi adalah ...",o:["Mengamalkan nilai-nilai Pancasila secara nyata","Mengikuti seminar tentang ideologi di dunia","Mendalami kajian dan teori terkait upaya deradikalisasi","Membuat gerakan tandingan untuk melawan gerakan radikal","Mempersenjatai diri untuk bertempur melawan organisasi radikal"],k:0},
+{s:"TWK",t:"Bela Negara",q:"Lepasnya Pulau Sipadan dan Ligitan menjadi sejarah kelam bagi NKRI karena adanya intervensi asing. Mahkamah Internasional saat itu memenangkan Malaysia dengan argumen (effective occupation) bahwa kedua pulau tersebut lebih banyak dikelola Malaysia daripada Indonesia. Bukti upaya bela negara untuk mempertahankan wilayah berdasarkan pelajaran dari kasus tersebut adalah ...",o:["Memperketat kegiatan patroli dan operasi militer pada wilayah perbatasan","Meminta bantuan negara lain dalam menjaga keamanan di wilayah perbatasan","Menambah anggaran militer untuk memperkuat persenjataan di wilayah perbatasan","Menunjukkan eksistensi negara dalam melakukan pengelolaan di wilayah perbatasan","Membuat gentar negara lain dengan melakukan pengelolaan di wilayah perbatasan laut"],k:3},
+{s:"TWK",t:"Bela Negara",q:"Permasalahan kemiskinan sering kali menjadi penyebab munculnya ancaman konflik sosial dalam masyarakat bagi bangsa Indonesia. Dampak dari permasalahan tersebut dapat memecah belah persatuan bangsa dan negara. Berikut ini merupakan bukti upaya menghadapi ancaman konflik sosial untuk mewujudkan kekuatan bangsa di bidang sosial, yakni ...",o:["Berwirausaha sebagai sarana mendapat bantuan modal dari pemerintah","Memberikan bantuan pada anggota partai politiknya yang memiliki loyalitas","Menyelenggarakan pertunjukan musik untuk memberikan hiburan masyarakat","Memberikan beasiswa pada semua anak tanpa membedakan kemampuan ekonomi","Memfasilitasi pengembangan produk dalam negeri agar bersaing di tingkat global"],k:4},
+{s:"TWK",t:"Bela Negara",q:"Perekonomian bangsa Indonesia saat ini dihadapkan pada tantangan kemandirian dalam melakukan pengembangan kegiatan usaha. Berkaitan dengan hal tersebut, mengapa membeli barang-barang produksi dalam negeri merupakan partisipasi warga negara untuk mempertahankan keutuhan NKRI?",o:["Meningkatkan daya beli masyarakat","Membantu memberdayakan usaha ekonomi rakyat","Meningkatkan arus sektor perdagangan dalam negeri","Membentuk kebiasaan hidup sederhana pada masyarakat","Masyarakat dapat memperoleh barang dengan harga murah"],k:1},
+{s:"TWK",t:"Bela Negara",q:"Pada tanggal 10 November 1945 seluruh rakyat Surabaya menolak menyerahkan diri dan memutuskan perang melawan Sekutu yang kemudian diperingati sebagai Hari Pahlawan. Peristiwa tersebut memberikan inspirasi agar kita ...",o:["Dapat mewarisi semangat kepahlawanan dalam mempertahankan NKRI","Terus bersemangat membangun dan mengisi kemerdekaan","Mengambil hikmah dari peristiwa 10 November 1945","Meneladani semangat Bung Tomo sebagai pahlawan nasional","Mampu menangkap pesan heroik pada peristiwa 10 November 1945"],k:0},
+{s:"TWK",t:"Bela Negara",q:"Penggunaan produk dalam negeri oleh masyarakat sangat mendukung ketahanan ekonomi dan keutuhan negara karena hal itu akan membawa dampak positif, di antaranya adalah ...",o:["Mengurangi ketergantungan impor","Mendorong peningkatan ekspor","Meningkatkan konsumsi masyarakat","Meningkatkan peran swasta","Mengurangi laju inflasi"],k:0},
+/* ---------------- TWK : PILAR NEGARA ---------------- */
+{s:"TWK",t:"Pilar Negara",q:"Menurut ketentuan UUD Negara Republik Indonesia Tahun 1945 sebagai wujud paham konstitusionalisme, dinyatakan bahwa MPR terdiri atas anggota DPR dan anggota DPD yang dipilih melalui pemilihan umum. MPR berwenang mengubah dan menetapkan UUD, serta melantik Presiden dan Wakil Presiden. Berdasarkan ketentuan tersebut, MPR pada dasarnya ...",o:["Berkedudukan lebih tinggi dari DPR dan DPD","Mempunyai kekuasaan tertinggi yang melebihi UUD","Merupakan pemegang kedaulatan rakyat hasil pemilu","Berkedudukan lebih tinggi dari Presiden dan Wakil Presiden","Merupakan representasi sistem parlemen bikameral"],k:4},
+{s:"TWK",t:"Pilar Negara",q:"Lembaga kepresidenan dalam sistem pemerintahan di Indonesia diatur dengan jelas dalam UUD NRI 1945. Keberadaan lembaga itu sangat penting sehingga perlu diatur dalam konstitusi karena ...",o:["Pemerintahan di Indonesia tidak akan berjalan dengan efektif jika tidak ada presiden","Untuk menyesuaikan dengan demokrasi Pancasila yang dianut oleh Indonesia","Indonesia menganut sistem presidensial murni sehingga lembaga kepresidenan harus ada","Untuk melaksanakan kebijakan perlu ada eksekutor dalam suatu sistem pemerintahan","Dalam sistem trias politica perlu ada lembaga yang melaksanakan kekuatan eksekutif"],k:1},
+{s:"TWK",t:"Pilar Negara",q:"MPR, DPR, Presiden, BPK, MA, dan MK dalam melaksanakan kekuasaannya dibatasi menurut konstitusi UUD NRI 1945. Manakah dari pilihan di bawah ini yang menunjukkan bukti praktik ketatanegaraan tersebut merupakan penerapan paham konstitusionalisme dalam NKRI?",o:["Kekuasaan negara yang terpisah satu dengan yang lain sama sekali tidak berhubungan","Mewujudkan kekuasaan negara yang sederajat dan saling mengontrol satu sama lain","Presiden menjalankan fungsi sebagai pemegang kekuasaan negara secara penuh","Para pejabat legislatif menjalankan tugas sesuai kebijakan organisasi politiknya","Rakyat sebagai pemegang kedaulatan berwenang mengatur pemerintah"],k:1},
+{s:"TWK",t:"Pilar Negara",q:"Sistem konstitusional dalam penyelenggaraan kekuasaan negara bersandar pada kedaulatan rakyat yang menggambarkan check and balance serta pertanggungjawaban kekuasaan. Prinsip kedaulatan rakyat menurut paham konstitusional penting diterapkan di negara hukum karena ...",o:["Jaminan kekuasaan tertinggi negara pada DPR","Sebagai jaminan pemenuhan hak-hak warga negara oleh pemerintah","Untuk membatasi kewenangan pemerintah dalam mengatur warga negara","Menjamin kebebasan hak warga negara dalam kehidupan bermasyarakat","Dasar bagi pemerintah untuk mendapatkan hak kedaulatan tertinggi dari rakyat"],k:2},
+{s:"TWK",t:"Pilar Negara",q:"Semua peraturan perundang-undangan harus mengacu pada norma-norma yang diatur dalam UUD NRI 1945. Jika dianggap bertentangan, sebuah undang-undang dapat diuji ke Mahkamah Konstitusi. Dengan demikian kedudukan UUD NRI 1945 dalam sistem hukum Indonesia merupakan ...",o:["Konstitusi tertulis tertinggi","Sumber hukum tertinggi","Dasar penyusunan UU","Norma dasar tertinggi","Sumber dari segala sumber hukum"],k:0},
+{s:"TWK",t:"Pilar Negara",q:"Warga negara dan penduduk merupakan salah satu aspek penting yang diatur dalam UUD Negara RI Tahun 1945 Pasal 26. Alasan pentingnya perihal warga negara dan penduduk diatur dalam konstitusi adalah ...",o:["Agar jelas kedudukan, hak, dan kewajiban dalam kehidupan berbangsa dan bernegara","Sering kali terjadi perbedaan persepsi di masyarakat antara penduduk dan warga negara","Kedudukan warga negara dan penduduk menjadi lebih jelas dalam kehidupan berbangsa","Warga negara dan penduduk memiliki hak dan kewajiban yang berbeda dalam kehidupan bernegara","Agar tidak terjadi saling klaim hak dan kewajiban antara warga negara dan penduduk"],k:0},
+/* ---------------- TWK : BAHASA INDONESIA ---------------- */
+{s:"TWK",t:"Bahasa Indonesia",q:"Perhatikan kalimat berikut!\n\n\u201CPemberian vaksin atau imunisasi secara luas, diakui sebagai salah satu intervensi kesehatan yang paling berhasil dan efektif di dunia untuk mencegah kecacatan dan kematian.\u201D\n\nPerbaikan ejaan yang salah dalam kalimat tersebut adalah ...",o:["vaksin seharusnya vaksinasi","tanda koma (,) setelah kata \u201Cluas\u201D dihilangkan","intervensi seharusnya interfensi","di dunia seharusnya didunia","setelah kata \u201Cdunia\u201D diberi tanda koma (,)"],k:1},
+{s:"TWK",t:"Bahasa Indonesia",q:"Perhatikan paragraf berikut!\n\nTerdapat beberapa masalah yang dikhawatirkan muncul sebagai akibat dari perkembangan dunia digital saat ini. Salah satu permasalahan tersebut adalah hilangnya rasa kedekatan hubungan dengan sesama. Interaksi tatap muka digantikan dengan interaksi jarak jauh melalui perantara gawai. Oleh karena itu, muncul kesenjangan hubungan antara orang tua dan anak, antarsaudara, atau dengan orang lain. Hal tersebut perlu diwaspadai karena dunia digital sangat bebas, luas, dan tanpa batas.\n\nIde pokok paragraf tersebut adalah ...",o:["Banyak masalah yang muncul karena perkembangan dunia digital","Anak dapat mengalami masalah perkembangan karena dunia digital","Dunia digital dapat berpengaruh pada pola interaksi antarmanusia","Anak-anak zaman sekarang sangat terbantu teknologi dan internet","Pengaruh teknologi dan internet sangat bebas, luas, dan tanpa batas"],k:0},
+{s:"TWK",t:"Bahasa Indonesia",q:"Perhatikan paragraf berikut!\n\nMudik lebaran telah menjadi tradisi di seluruh penjuru Nusantara. Meskipun para perantau sudah puluhan tahun berdomisili dan bekerja di luar kota, luar pulau, atau luar negeri, sebagian besar orang memandang mudik lebaran ke kampung halaman sebagai momentum yang selalu ditunggu-tunggu. Hal ini terjadi karena tradisi mudik lebaran memiliki multimakna bagi masyarakat, tidak hanya pada aspek tradisi dan budaya, tetapi juga aspek kehidupan sosial dan ekonomi. Pemaknaan dan pemanfaatan momentum lebaran menjadi kesempatan untuk pemberdayaan ekonomi masyarakat lokal.\n\nIde pokok paragraf tersebut adalah ...",o:["Tradisi mudik lebaran","Pentingnya mudik lebaran","Momentum mudik lebaran","Aspek budaya mudik lebaran","Manfaat mudik lebaran"],k:0},
+{s:"TWK",t:"Bahasa Indonesia",q:"Cermati kutipan cerpen berikut!\n\nAku mungkin saja akan terbangun kesiangan seandainya subuh itu tidak terjadi perang di depan rumahku. Ayah menarik tubuh dari atas ranjang dan menjatuhkannya ke lantai rumah. Dalam kantuk aku mendengar suara senjata meletus tak henti-henti. Ayah mengimpit tubuhku. Ibu melata di sampingku. Tak henti-henti suara ibu berdoa. Ayah mengucapkan sesuatu dengan amat pelan. Aku mengerti bahwa telah terjadi perang. Suara letusan senjata itu sudah tidak asing lagi bagiku.\n\nNilai sosial dalam kutipan cerpen tersebut adalah ...",o:["Perjuangan seorang ayah melindungi keluarganya","Suasana perang yang penuh ketegangan dan keharuan","Perang hanya menyebabkan ketakutan bagi rakyat","Setiap orang harus mampu mempertahankan hidup","Setiap orang harus mampu mengatasi permasalahannya"],k:0},
+{s:"TWK",t:"Bahasa Indonesia",q:"Cermati teks berikut!\n\nDi Hari Bumi, kita dapat melihat bagaimana planet biru berubah dalam 20 tahun terakhir. Hal itu dapat disaksikan melalui video singkat yang dibuat Badan Antariksa AS (NASA) dengan menggunakan citra satelit Sensor Tampilan Lapangan Luas (SeaWiFS). NASA meyakini bahwa perubahan lanskap bumi akan memberikan pemahaman bagi manusia bahwa planet biru yang kita tinggali ini hidup. Bumi bernapas setiap hari. Ia berubah setiap pergantian musim dan bisa menanggapi matahari, angin, arus laut, dan juga suhu.\n\nSimpulan teks tersebut adalah ...",o:["NASA membuat video tentang perubahan bumi","Bumi mengalami perubahan dalam dua dasawarsa","Keadaan bumi saat ini dapat dilihat dari luar angkasa","Bumi setiap hari melakukan pernapasan dan berubah","Perubahan bumi merupakan tanggapan atas berbagai hal"],k:1},
+{s:"TWK",t:"Bahasa Indonesia",q:"Cermati kutipan berikut!\n\n\u201CApakah benar Anda yang menggelapkan dana perusahaan?\u201D \u201CBenar.\u201D \u201CMengapa?\u201D \u201CSaya khilaf.\u201D \u201CAlasan klasik! Jawab sejujurnya!\u201D Aku kemudian bercerita panjang lebar. Sejak latar belakang hingga proses penggelapan dana, kesalahanku kuobral habis. Tak ada yang kututupi. Mereka akhirnya tenang setelah aku mengobral kesalahanku yang jauh lebih besar.\n\nNilai moral dalam kutipan tersebut adalah ...",o:["Mengingkari kesalahan","Pengakuan penuh risiko","Pengutamaan kejujuran","Menyesali kesalahan","Kesadaran bertobat"],k:2},
+/* ---------------- TIU : ANALOGI ---------------- */
+{s:"TIU",t:"Analogi",q:"Pada sepatu terdapat lubang tali dan sol.\nHubungan objek yang setara dengan kalimat di atas adalah ...",o:["Pada film terdapat intro dan gitar","Pada lagu terdapat intro dan outro","Pada drama terdapat suara dan musik","Pada sinetron terdapat hiburan dan bioskop","Pada teater terdapat panggung dan hiburan"],k:1},
+{s:"TIU",t:"Analogi",q:"Tembok bangunan terdiri dari pasir dan semen.\nHubungan objek yang setara dengan kalimat di atas adalah ...",o:["Pantai terdiri dari laut dan pasir","Pagi terdiri dari matahari dan ayam","Tabel terdiri dari penggaris dan pensil","Bunga terdiri dari kelopak dan tangkai","Batu bata terdiri dari batu dan lantai"],k:3},
+{s:"TIU",t:"Analogi",q:"Geraham dan taring merupakan bagian dari jenis gigi.\nHubungan objek yang setara dengan kalimat di atas adalah ...",o:["Iga dan rusuk merupakan bagian dari jenis tulang","Meja dan kursi merupakan bagian dari jenis rumah","Senang dan sedih merupakan bagian dari jenis hiburan","Tengkorak dan hidung merupakan bagian dari jenis wajah","Darah dan pembuluh merupakan bagian dari penyakit"],k:0},
+{s:"TIU",t:"Analogi",q:"Pupuk digunakan untuk tanaman.\nHubungan objek yang setara dengan kalimat di atas adalah ...",o:["Bensin digunakan untuk bahan bakar","Sabun digunakan untuk mandi","Vitamin digunakan untuk kesehatan","Nutrisi digunakan untuk tubuh","Kaki digunakan untuk berjalan"],k:3},
+{s:"TIU",t:"Analogi",q:"Teleskop terdiri atas lensa dan tabung.\nHubungan objek yang setara dengan kalimat di atas adalah ...",o:["Kamera terdiri dari lensa dan bodi","Kapal terdiri dari dek dan mesin","Gitar terdiri dari senar dan papan jari","Komputer terdiri dari monitor dan CPU","Lampu terdiri dari kabel dan bola lampu"],k:0},
+{s:"TIU",t:"Analogi",q:"Tenda dan api unggun berada di tempat perkemahan.\nHubungan objek yang setara dengan kalimat di atas adalah ...",o:["Bulan dan bintang berada di malam hari","Buku dan kamus berada di dalam perpustakaan","Kata dan kalimat berada dalam paragraf","Praktik dan teori berada di dalam proses kuliah","Tas dan alat tulis berada pada mahasiswa"],k:1},
+/* ---------------- TIU : SILOGISME ---------------- */
+{s:"TIU",t:"Silogisme",q:"Pemain sepak bola memakai sepatu impor luar negeri. Sepatu impor biasanya lebih baik dari sepatu lokal karena bisa membawa sampai ke final. Bang Rahmat turun di partai final.",o:["Semua pemain sepak bola sampai ke partai final karena memakai sepatu impor","Beberapa pemain sepak bola tidak sampai ke final karena memakai sepatu lokal","Semua pemain sepak bola kecuali Bang Rahmat memakai sepatu lokal","Bang Rahmat merupakan pemain sepak bola yang memakai sepatu impor","Semua pemain sepak bola tidak sampai ke final karena memakai sepatu lokal"],k:3},
+{s:"TIU",t:"Silogisme",q:"Semua karyawan perusahaan X mendapat pemotongan upah jika tidak bekerja dengan baik. Tidak satu pun karyawan perusahaan X yang mendapat pemotongan upah.",o:["Semua karyawan perusahaan X tidak bekerja dengan baik sehingga mendapat pemotongan upah","Tidak satu pun karyawan perusahaan X yang bekerja dengan baik","Semua karyawan perusahaan X bekerja dengan baik dan mendapat pemotongan gaji","Semua karyawan perusahaan X bekerja dengan baik","Semua karyawan perusahaan X mendapat pemotongan upah"],k:3},
+{s:"TIU",t:"Silogisme",q:"Semua lemari yang dipamerkan terbuat dari kayu. Pengrajin menganggap lemari kayu memiliki nilai keindahan. Lemari itu tidak terbuat dari kayu.\n\nKesimpulan dari ketiga pernyataan di atas adalah ...",o:["Semua lemari yang terbuat dari kayu memiliki nilai keindahan","Semua yang memiliki nilai keindahan dan dipamerkan terbuat dari kayu","Lemari itu tidak memiliki nilai keindahan","Lemari itu memiliki nilai keindahan","Lemari itu tidak dipamerkan"],k:4},
+{s:"TIU",t:"Silogisme",q:"Semua satpam di perusahaan X mendapatkan insentif harian. Semua peserta arisan adalah satpam di perusahaan X.\n\nSimpulan yang tepat dari pernyataan di atas adalah ...",o:["Sebagian peserta arisan tidak mendapatkan insentif harian","Semua peserta arisan mendapatkan insentif harian","Semua satpam di perusahaan X adalah peserta arisan","Sebagian peserta arisan bukan satpam di perusahaan X","Sebagian peserta arisan mendapatkan insentif harian"],k:1},
+{s:"TIU",t:"Silogisme",q:"Semua penumpang bis kota memiliki kartu langganan kendaraan umum. Tidak ada karyawan di pabrik sepatu yang memiliki kartu langganan kendaraan umum.\n\nSimpulan yang tepat dari pernyataan di atas adalah ...",o:["Tidak ada karyawan di pabrik sepatu yang menjadi penumpang bis kota","Tidak ada karyawan yang tidak memiliki kartu langganan kendaraan umum","Tidak ada karyawan di pabrik sepatu yang tidak menjadi penumpang bis kota","Karyawan yang memiliki kartu langganan kendaraan umum tidak bekerja di pabrik sepatu","Karyawan pabrik sepatu yang menjadi penumpang bis kota tidak memiliki kartu langganan kendaraan umum"],k:0},
+{s:"TIU",t:"Silogisme",q:"Semua peserta pameran lukisan adalah pemenang lomba lukis tingkat provinsi. Semua yang berpartisipasi di kegiatan amal sekolah adalah peserta pameran lukisan.\n\nSimpulan yang tepat untuk pernyataan di atas adalah ...",o:["Semua peserta pameran lukisan harus berpartisipasi di kegiatan amal sekolah","Semua yang berpartisipasi di kegiatan amal sekolah adalah pemenang lomba lukis tingkat provinsi","Sebagian yang berpartisipasi di kegiatan amal sekolah adalah pemenang lomba lukis tingkat provinsi","Tidak semua peserta pameran lukisan adalah pemenang lomba lukis tingkat provinsi yang berpartisipasi di kegiatan amal sekolah","Semua peserta pameran lukisan adalah pemenang lomba lukis tingkat provinsi yang berpartisipasi di kegiatan amal sekolah"],k:1},
+/* ---------------- TIU : PENALARAN ANALITIS ---------------- */
+{s:"TIU",t:"Penalaran Analitis",q:"Dalam sebuah acara undangan pernikahan terdapat 8 orang tamu yang duduk dalam dua baris pada kedua sisi meja. Andi berada di antara Lala dan Ari dan berhadapan dengan Bejo. Reza berada di sebelah Bejo, sedangkan Ari duduk berhadapan dengan Anto dan berada di antara Andi dan Eko. Jika Nuri duduk di sebelah Anto, siapakah yang berada di antara Reza dan Anto?",o:["Nuri","Bejo","Lala","Andi","Ari"],k:1},
+{s:"TIU",t:"Penalaran Analitis",q:"Bu Irma sedang membuat berbagai kerajinan tangan, yaitu kerajinan M, L, K, O, dan P. Setiap kerajinan membutuhkan bahan masing-masing. Kain flanel dibutuhkan pada semua jenis kerajinan, kain rajut tidak dibutuhkan pada kerajinan L dan K, sedangkan kain spandeks hanya dibutuhkan pada kerajinan M dan L. Bu Irma sedang mempersiapkan kain flanel dan kain spandeks saja.\n\nKerajinan tangan apakah yang sedang dibuat Bu Irma?",o:["Kerajinan P","Kerajinan O","Kerajinan K","Kerajinan L","Kerajinan M"],k:3},
+{s:"TIU",t:"Penalaran Analitis",q:"Seorang petani menanam bibit mangga: manalagi, arumanis, madu, cengkir indramayu, lalujiwo, gedong gincu, alpukat, dan golek. Empat bibit ditanam di samping kiri dan sisanya di samping kanan. Alpukat ditanam di samping kanan manalagi. Gedong gincu ditanam di antara madu dan arumanis. Lalujiwo ditanam di sebelah kiri arumanis. Cengkir indramayu ditanam di antara golek dan lalujiwo.\n\nBuah mangga jenis apa yang ditanam di sebelah kanan cengkir indramayu?",o:["Alpukat","Arumanis","Manalagi","Madu","Gedong gincu"],k:4},
+{s:"TIU",t:"Penalaran Analitis",q:"Rani, Esti, Ica, Sigit, Bowo, dan Harry menonton bola dari anak tangga stadion. Masing-masing berdiri pada anak tangga bernomor 1 sampai 6 dari bawah ke atas. Rani berada pada anak tangga keempat. Ica dan Bowo berada pada anak tangga yang lebih rendah daripada anak tangga tempat Esti berdiri. Sigit berdiri pada anak tangga yang lebih rendah daripada anak tangga tempat Ica berdiri.\n\nManakah urutan berdiri yang tepat dari anak tangga paling bawah ke atas?",o:["Esti, Harry, Bowo, Rani, Ica, dan Sigit","Ica, Sigit, Bowo, Esti, Harry, dan Rani","Sigit, Bowo, Ica, Rani, Harry, Esti","Harry, Rani, Sigit, Esti, Bowo, dan Ica","Harry, Ica, Sigit, Rani, Bowo, dan Esti"],k:2},
+{s:"TIU",t:"Penalaran Analitis",q:"Bu Mira mengatur pot bunganya dalam satu deret agar mudah disiram. Bunga mawar berada di posisi paling ujung dekat kran air sehingga disiram pertama kali. Bunga sepatu disiram setelah melati dan sebelum flamboyan. Bunga kenanga disiram setelah kamboja dan sebelum melati.\n\nBunga apakah yang disiram terakhir?",o:["Bunga sepatu","Bunga kenanga","Bunga melati","Bunga kamboja","Bunga flamboyan"],k:4},
+{s:"TIU",t:"Penalaran Analitis",q:"Sebuah kompleks pertokoan terdiri atas delapan toko milik delapan pedagang yang saling berhadapan. Pedagang kain bersebelahan dengan pedagang tas. Pedagang pakaian berada di antara pedagang roti dan pedagang emas serta berhadapan dengan pedagang tas. Pedagang beras berada di sebelah kanan pedagang makanan ringan dan di depan pedagang alat tulis. Pedagang makanan ringan berhadapan dengan pedagang roti.\n\nPedagang apakah yang berada di sebelah kiri pedagang makanan ringan?",o:["Pedagang emas","Pedagang alat tulis","Pedagang kain","Pedagang tas","Pedagang beras"],k:3},
+/* ---------------- TIU : DERET BILANGAN ---------------- */
+{s:"TIU",t:"Deret Bilangan",q:"1536, −768, 384, −192, 96, −48, 24, ..., ...",o:["8, −4","−8, 4","−8, 2","12, −6","−12, 6"],k:4},
+{s:"TIU",t:"Deret Bilangan",q:"4, 8, 16, 32, 64, 128, 256, ..., ...",o:["528, 1032","664, 1328","512, 1024","522, 1114","516, 1224"],k:2},
+{s:"TIU",t:"Deret Bilangan",q:"2, 4, 12, 48, 240, 1440, 10080, ..., ...",o:["80640, 725760","80540, 725760","70560, 564480","70560, 635040","90720, 907200"],k:0},
+{s:"TIU",t:"Deret Bilangan",q:"144, 288, 72, 144, 36, 72, 18, ..., ...",o:["36, 72","9, 72","9, 36","72, 9","36, 9"],k:4},
+{s:"TIU",t:"Deret Bilangan",q:"4, 8, 8, 16, 16, 32, 32, ..., ...",o:["62, 62","64, 64","68, 68","74, 74","78, 78"],k:1},
+{s:"TIU",t:"Deret Bilangan",q:"288, 11, 144, 17, 72, 23, 36, ..., ...",o:["29, 18","29, 96","27, 18","27, 24","25, 4"],k:0},
+/* ---------------- TIU : PERBANDINGAN KUANTITATIF ---------------- */
+{s:"TIU",t:"Perbandingan Kuantitatif",q:"Andi dan Budi mengendarai sepeda balap masing-masing.\n\nA = Kecepatan Budi ketika menempuh 120 km selama 5 jam\nB = Kecepatan Andi ketika menempuh 54 km dalam 3 jam\n\nHubungan yang benar untuk kedua kuantitas di atas adalah ...",o:["A < B","A > 2B","A = B","3A = 4B","4A = 3B"],k:3},
+{s:"TIU",t:"Perbandingan Kuantitatif",q:"Seorang siswa memperoleh nilai 98, 83, 75, dan 69.\n\nA = Nilai ulangan selanjutnya agar ia memperoleh rata-rata 82\nB = 85\n\nManakah hubungan yang benar dari kedua kuantitas di atas?",o:["A > B","A < B","A = B","3A = B","A = 3B"],k:2},
+{s:"TIU",t:"Perbandingan Kuantitatif",q:"P = Hasil penjumlahan banyaknya sisi prisma segitiga dengan jumlah rusuknya\nQ = 7\n\nManakah hubungan yang benar antara kuantitas P dan Q?",o:["P = Q","P < Q","P > 2Q","P = ½Q","P = 2Q"],k:4},
+{s:"TIU",t:"Perbandingan Kuantitatif",q:"Harga satu lusin benang rajut adalah Rp936.000,00.\n\nA = harga sejumlah gulung benang rajut\nB = Rp468.000,00\n\nManakah hubungan yang benar antara kuantitas A dan B?",o:["Harga 3 gulung benang rajut = B","Harga 4 gulung benang rajut = B","Harga 5 gulung benang rajut = B","Harga 6 gulung benang rajut = B","Harga 7 gulung benang rajut = B"],k:3},
+{s:"TIU",t:"Perbandingan Kuantitatif",q:"A = Luas sebuah persegi panjang yang memiliki panjang 9,5 m dan lebar 3 m\nB = 26,5 m²\n\nManakah hubungan yang benar antara kuantitas A dan B?",o:["A > B","A < B","A = B","2A = B","Hubungan A dan B tidak bisa ditentukan"],k:0},
+/* ---------------- TIU : CERITA PERBANDINGAN ---------------- */
+{s:"TIU",t:"Cerita Perbandingan",q:"Sebuah kolam renang di arena olahraga dapat dikuras dalam waktu 3,5 jam melalui 6 saluran pembuangan. Jika 2 saluran tidak berfungsi sehingga tidak bisa digunakan, waktu yang dibutuhkan untuk menguras kolam tersebut adalah ...",o:["5,25 jam","5,5 jam","6 jam","6,5 jam","7 jam"],k:0},
+{s:"TIU",t:"Cerita Perbandingan",q:"Suatu perusahaan konveksi mempekerjakan 80 orang pekerja yang dapat membuat 20 jahitan dalam waktu 24 jam. Berapa jahitan yang dapat dihasilkan dalam waktu 18 jam dengan jumlah pekerja 80 orang tersebut?",o:["15 jahitan","16 jahitan","17 jahitan","22 jahitan","24 jahitan"],k:0},
+{s:"TIU",t:"Cerita Perbandingan",q:"Untuk membuat 12 cangkir kopi yang enak, seorang barista memerlukan biji kopi sebanyak 144 gram. Jika barista tersebut ingin membuat 30 cangkir kopi untuk pelanggannya, biji kopi yang diperlukan adalah ...",o:["300 gram","320 gram","360 gram","400 gram","500 gram"],k:2},
+{s:"TIU",t:"Cerita Perbandingan",q:"Hari libur Bimo berkendara dari rumahnya menuju pegunungan. Ia berangkat pukul 05.30 dengan kecepatan 40 km/jam sehingga untuk sampai ke pegunungan memerlukan waktu 6 jam. Suatu ketika Bimo meningkatkan kecepatannya menjadi 60 km/jam. Bimo akan tiba di pegunungan pada pukul ...",o:["09.30","10.00","10.30","11.00","11.30"],k:0},
+{s:"TIU",t:"Cerita Perbandingan",q:"Seorang penjahit menerima pesanan baju untuk 280 anak panti asuhan yang jika dikerjakan sendiri membutuhkan waktu 42 hari. Berapa karyawan yang perlu dipekerjakan agar pesanan selesai dalam waktu 2 minggu?",o:["3 karyawan","4 karyawan","5 karyawan","9 karyawan","10 karyawan"],k:0},
+{s:"TIU",t:"Cerita Perbandingan",q:"Satu lusin baju dibeli dengan harga Rp480.000,00. Berapakah harga 15 buah baju yang sama?",o:["Rp540.000,00","Rp560.000,00","Rp600.000,00","Rp720.000,00","Rp800.000,00"],k:2},
+/* ---------------- TKP : PROFESIONALISME ---------------- */
+{s:"TKP",t:"Profesionalisme",q:"Sebagai sosok yang disegani dan dapat diandalkan, Hasan terpilih sebagai ketua karang taruna di desanya. Setelah resmi menjabat, ia bertugas membuat susunan pengurus baru dalam waktu sebulan. Tindakan Hasan adalah ...",o:["Meminta arahan dari ketua sebelumnya, kemudian mendiskusikan dengan anggota secara terbuka","Menyusun kepengurusan bersama teman-teman dekatnya karena sudah saling terbiasa bersama-sama","Membebaskan kepada siapa pun yang berminat menjadi pengurus untuk bergabung pada periode kepengurusan tahun ini","Memberikan kesempatan secara terbuka, kemudian melalui aklamasi memilih pengurus lainnya sesuai dengan kemampuan masing-masing","Memberikan kesempatan yang sama bagi setiap anggota yang hendak mencalonkan diri, kemudian pemilihan dilakukan secara musyawarah mufakat"],p:[2,1,3,5,4]},
+{s:"TKP",t:"Profesionalisme",q:"Anik adalah karyawan yang bertugas melayani keperluan masyarakat di kantor kelurahan. Suatu hari, anak bungsunya sakit dan harus segera dibawa ke rumah sakit. Pada saat yang bersamaan, masih ada tugas penting yang harus ia selesaikan pada hari tersebut. Apa yang sebaiknya Anik lakukan?",o:["Mengerjakan satu per satu tugas yang harus diselesaikan pada hari itu sebisanya, sekalipun hati tidak tenang","Memilah tugas kantor yang dapat ia bawa pulang dan menyelesaikannya di rumah","Memilah pekerjaan yang harus ia selesaikan pada hari itu dan yang dapat diteruskan keesokan hari, lalu menuntaskannya","Meminta pertolongan keluarga dekat untuk mengawasi anak dan meminta bantuan kolega untuk bersama-sama menyelesaikan pekerjaan","Mengerjakan tugas secepat mungkin agar dapat segera pulang dan mengantar anak ke rumah sakit"],p:[3,1,2,4,5]},
+{s:"TKP",t:"Profesionalisme",q:"Salma sebagai ketua kelompok sedang memimpin jalannya pertemuan untuk membahas tugas dari dosen yang harus dikumpulkan satu minggu dari sekarang. Salah satu anggota kelompok tidak hadir pada saat itu. Yang dilakukan Salma adalah ...",o:["Mengerjakan tugas dengan apa adanya sesuai kemampuan setiap anggota kelompok","Mengerjakan tugas sesuai dengan suasana hati anggota kelompok","Tetap melakukan diskusi kelompok dan pengerjaan tugas tanpa menunggu anggota yang tidak hadir","Mengonfirmasi alasan ketidakhadiran anggota kelompok","Membagi tugas setiap anggota kelompok dengan tetap secara aktif menghubungi teman yang tidak hadir"],p:[3,2,4,1,5]},
+{s:"TKP",t:"Profesionalisme",q:"Bobi adalah karyawan tetap di bagian humas. Pada hari Sabtu dan Minggu ia bekerja sebagai jurnalis. Suatu saat ia mendapatkan tugas untuk menulis tiga berita dengan batas waktu pada saat hari kerja. Apa yang perlu dilakukan oleh Bobi?",o:["Menulis berita sampai selesai meski mengorbankan waktu kerjanya sebagai karyawan","Menulis berita yang disukai saja supaya dapat mencapai target maksimal","Merencanakan tema berita dan mencari bahan dengan tetap mengelola waktu","Menulis topik berita yang ringan, tetapi tetap menarik agar lebih mudah dikerjakan","Fokus menyelesaikan tugas berita tepat waktu dengan mencari ide dari media sosial"],p:[1,2,5,3,4]},
+{s:"TKP",t:"Profesionalisme",q:"Yudi bekerja sebagai staf customer service pada perusahaan di bidang jasa yang mengutamakan kepuasan pelanggan. Dalam beberapa bulan terakhir ditemukan keluhan dari para pelanggan terkait waktu pelayanan yang menjadi lambat. Apa yang sebaiknya dilakukan Yudi?",o:["Berupaya menjawab satu per satu keluhan pelanggan yang datang dengan penuh kesabaran","Tetap melanjutkan pelayanan seperti biasanya karena menyadari bahwa tidak semua pelanggan bisa dipuaskan","Memperbaiki layanan jasa untuk pelanggan yang mengeluh agar tidak sampai tersiar di media sosial","Membuat survei kepuasan pelanggan dan datanya dapat digunakan untuk meningkatkan kualitas layanan secara konsisten","Secara berkala, minimal sebulan sekali, melakukan evaluasi kinerja karyawan untuk mengoptimalkan kepuasan pelanggan"],p:[5,1,4,3,2]},
+{s:"TKP",t:"Profesionalisme",q:"Seminggu lagi akan ada kunjungan dari wali kota. Fatima sebagai anggota OSIS diminta membantu guru menyiapkan beberapa acara sambutan, padahal Fatima juga sedang menyiapkan acara Hari Kartini. Tindakan Fatima adalah ...",o:["Berdiskusi pada guru sehingga bisa berimprovisasi jika ada perubahan di lapangan","Membantu guru menyiapkan acara sambutan sesuai dengan kemampuannya","Membagi tugas dengan anggota lain dan menyiapkan rencana alternatif untuk kedua agenda yang ada","Membuat rencana kegiatan saat tamu datang dan menyiapkan kunjungan ke beberapa tempat yang ada di lingkungan sekolah","Membuat daftar keperluan yang harus disiapkan saat acara penyambutan dan kegiatan peringatan Hari Kartini"],p:[2,1,5,4,3]},
+{s:"TKP",t:"Profesionalisme",q:"Sejak kepala kantor berganti, Amrizal sering kehabisan waktunya hanya untuk memeriksa barang keluar-masuk. Sementara itu, ia merasa tidak terlalu ahli di bidang tersebut. Amrizal sebaiknya ...",o:["Belajar dari pengalaman sekaligus mencari referensi daring mengenai cara efektif memantau pergerakan barang","Mempelajari prosedur standar keluar-masuk barang dengan lebih baik demi peningkatan kualitas kerja","Tetap mengerjakan sesuai penugasan kantor sekalipun tidak dapat menjamin kualitas hasilnya","Menerima hal tersebut sebagai tugasnya dan mencoba selalu tuntas melakukan apa yang diperintahkan","Memprioritaskan penyelesaian pemeriksaan untuk barang-barang tertentu yang berharga tinggi"],p:[4,5,1,3,2]},
+{s:"TKP",t:"Profesionalisme",q:"Maya sudah mengajukan surat cuti untuk minggu depan, tetapi Kepala Sekolah mengingatkan bahwa ada beberapa tugas yang harus diselesaikan bulan ini. Apa yang harus dilakukan jika Anda sebagai Maya?",o:["Sambil mengambil cuti, saya mengerjakan tugas tersebut","Saya petakan tugas-tugas yang harus diselesaikan sebelum dan sesudah cuti","Saya susun strategi penyelesaian sehingga semua tugas bisa selesai","Saya kerjakan tugas setelah cuti selesai","Saya tetap cuti karena sudah menjadi hak saya"],p:[3,4,5,2,1]},
+/* ---------------- TKP : PELAYANAN PUBLIK ---------------- */
+{s:"TKP",t:"Pelayanan Publik",q:"Saat Dedi sedang membantu pelanggan yang kebingungan di hadapan mesin pencetakan nomor antrean, seorang bapak menanyakan arah toilet yang letaknya di area belakang kantor pelayanan. Apa yang perlu dilakukan oleh Dedi?",o:["Meminta bapak itu untuk mencari sendiri toilet di area belakang kantor","Meminta maaf kepada bapak tersebut karena tidak bisa memenuhi permintaannya","Menyelesaikan pemberian nomor antrean, lalu mengantar bapak tersebut ke lokasi toilet","Meminta agar bapak tersebut mendatangi petugas pemberi informasi di bagian lobi kantor","Meminta rekannya untuk menunjukkan arah toilet ke bapak tersebut"],p:[1,2,5,3,4]},
+{s:"TKP",t:"Pelayanan Publik",q:"Ada seorang pasien di klinik tempat Ratri melakukan praktik. Pada saat diperiksa, pasien mengatakan bahwa ia sebenarnya langganan Dokter Edi, kolega Ratri. Karena Dokter Edi keluar kota, sementara ia berobat kepada Ratri. Padahal mereka telah bersepakat tidak akan saling mengambil alih langganan. Tindakan Ratri kepada pasien sebaiknya ...",o:["Memberikan saran tindak lanjut, meskipun pasien meneruskan pengobatan ke tempat lain","Menghubungi Dokter Edi dan menginformasikan bahwa ada langganannya yang harus ditangani","Memprioritaskan pasien yang sudah menjadi langganannya","Memberikan penanganan seperlunya karena telah membuat kesepakatan","Mengingat dampak yang ditimbulkan, penanganan diberikan dengan hati-hati dan sejelas-jelasnya"],p:[1,5,3,4,2]},
+{s:"TKP",t:"Pelayanan Publik",q:"Caca bekerja sebagai petugas kebersihan ruangan suatu hotel. Seorang tamu menegurnya karena handuk yang digunakan saat mandi berbau tidak enak padahal sudah dicuci oleh binatu. Apa yang sebaiknya dilakukan Caca?",o:["Segera melaporkan keluhan tersebut kepada atasan agar mengecek kembali kebersihan handuk","Meminta maaf atas ketidaknyamanan yang dialami dan akan segera menindaklanjuti","Mendengarkan tegurannya dengan saksama sambil tersenyum","Menawarkan untuk mengganti dengan handuk baru dan wangi","Mendengarkan tegurannya lalu mendiamkannya karena merasa bukan tanggung jawabnya"],p:[2,5,3,4,1]},
+{s:"TKP",t:"Pelayanan Publik",q:"Tiana diharuskan mengikuti lomba yang akan diadakan fakultas, tetapi Tiana tidak bisa memenuhi permintaan tersebut karena bertepatan dengan rapat tahunan mahasiswa. Apa yang sebaiknya Tiana lakukan?",o:["Memindahkan waktu rapat setelah perlombaan selesai","Mengatakan akan mengikuti lomba ilmiah jika rapat sudah selesai","Menjelaskan dengan baik bahwa waktu lomba bersamaan dengan rapat","Mengikuti lomba ilmiah demi kepentingan kampus terlebih dahulu baru mengikuti rapat tahunan","Menegaskan bahwa tidak bisa mengikuti lomba karena bertepatan dengan rapat tahunan"],p:[4,3,2,5,1]},
+{s:"TKP",t:"Pelayanan Publik",q:"Tetangga Bagas mengetahui bahwa ia bekerja di perusahaan listrik, sehingga mereka selalu memprotesnya saat listrik padam. Padahal tugas Bagas tidak berhubungan langsung dengan listrik, bahkan listrik rumah Bagas juga sebenarnya ikut padam. Bagaimana sebaiknya Bagas menanggapi tetangganya?",o:["Mengatakan bahwa pekerjaannya tidak ada hubungannya dengan padamnya listrik","Menghubungi bagian pelayanan pelanggan agar segera menindaklanjuti kondisi tersebut","Meminta menunggu karena pasti ada teknisi yang akan memperbaiki kondisi tersebut","Mencari tahu penyebabnya, sehingga dapat membantu perusahaan mencegah kejadian serupa","Meminta maaf atas kondisi tersebut dan menampung protes tetangga untuk disampaikan ke perusahaan"],p:[2,4,1,3,5]},
+{s:"TKP",t:"Pelayanan Publik",q:"Sebagai ketua acara kemahasiswaan, seorang dosen memberikan teguran keras kepada Riana karena hiburan di acara tersebut dianggap kurang sesuai dengan nilai budaya Indonesia. Teguran tersebut diberikan di depan umum sehingga banyak orang yang melihat. Apa yang perlu dilakukan Riana?",o:["Meyakinkan dosen bahwa ia dapat mempertanggungjawabkan dan memperbaiki acara tersebut","Meminta maaf dan menjanjikan akan mencatat masukan tersebut sebagai evaluasi","Meminta agar bisa membicarakan hal tersebut di tempat lain yang lebih tenang","Diam dan menerima teguran yang diberikan kepadanya","Menyangkal teguran dosen karena dipermalukan di depan banyak orang"],p:[4,5,3,2,1]},
+{s:"TKP",t:"Pelayanan Publik",q:"Setelah seorang penyewa kostum meninggalkan tempat, Anggi yang bertugas baru tahu bahwa baju yang dikembalikan dalam keadaan rusak. Persewaan tersebut punya aturan bahwa petugas yang lengah harus mengganti kerugiannya. Padahal Anggi sedang kesulitan keuangan. Tindakan yang sebaiknya dilakukan Anggi adalah ...",o:["Menuntut penyewa untuk bertanggung jawab dan membayar biaya perbaikan kerusakan","Menjelaskan kepada penyewa bahwa Anggi harus menanggung kerugian dengan uang pribadinya","Menjelaskan kronologi peristiwa kepada atasan dan memohon pemakluman","Menawarkan kemungkinan alternatif solusi kepada penyewa agar kerugian yang ia tanggung tidak terlalu besar","Meminta maaf atas kekurangjeliannya dalam mengecek baju yang dikembalikan dan berharap penyewa mengerti"],p:[1,2,5,3,4]},
+{s:"TKP",t:"Pelayanan Publik",q:"Ketika Arya sedang terburu-buru menyelesaikan laporan, seorang rekannya meminta tolong untuk diantar ke dokter karena sakit lambung sehingga tidak bisa berjalan. Apa yang sebaiknya dilakukan Arya?",o:["Minta maaf karena sedang sibuk sehingga tidak bisa mengantar ke dokter","Mencarikan orang yang bisa membantu mengantarkan rekannya ke dokter terdekat","Meminta kepada atasan untuk menunda pengumpulan tugas karena ada situasi mendesak di tempat kerja","Meminta rekannya untuk menunggu sebentar dengan suara keras","Mencari cara tercepat untuk bisa segera mengantarkan rekan tersebut ke dokter sambil menghubungi rumah sakit"],p:[1,5,3,2,4]},
+/* ---------------- TKP : JEJARING KERJA ---------------- */
+{s:"TKP",t:"Jejaring Kerja",q:"Sinta memiliki keahlian menata dan mendekorasi ruang untuk kegiatan pesta. Teman-temannya yang menjadi panitia PENSI di sekolah kesulitan mendekorasi ruangan. Mereka ingin menyewa ahli dekor, tetapi biayanya tidak cukup. Sinta sendiri tidak tergabung dalam kepanitiaan. Apa yang sebaiknya dilakukan Sinta?",o:["Meminjamkan buku tentang teknik dekorasi agar dipelajari sendiri oleh panitia","Membantu panitia mendekorasi ruangan sampai ruangan siap digunakan","Membantu mendekorasi ruangan karena guru pasti akan bangga dengan dirinya","Membantu panitia untuk mendekorasi ruangan karena diperintahkan oleh guru","Mengajak teman-teman lain untuk membantu mendekorasi ruangan"],p:[1,5,3,2,4]},
+{s:"TKP",t:"Jejaring Kerja",q:"Dea membaca informasi lomba menulis di surat kabar. Sahabatnya yang bernama Lintang juga memiliki hobi menulis. Akan tetapi, jika sahabatnya mengirimkan naskah tulisan, hal itu akan memperkecil kesempatannya untuk menang karena sahabatnya lebih baik dalam hal menulis. Dea sebaiknya ...",o:["Hanya akan memberikan informasi ketika sahabatnya menanyakannya","Mengajak Lintang untuk mengirimkan naskah dan bertukar tulisan untuk mengevaluasi kelemahan dalam penulisan","Memberikan informasi mengenai lomba agar sahabatnya juga dapat mengikutinya","Menyimpan informasi tersebut agar ia memiliki peluang menang lebih tinggi","Meminta Lintang untuk mencari informasi yang lebih lengkap mengenai lomba di surat kabar yang ia tunjukkan"],p:[2,5,4,1,3]},
+{s:"TKP",t:"Jejaring Kerja",q:"Andi mendapatkan tugas untuk menjadi ketua dalam acara panggung gembira di kampungnya. Ia membutuhkan berbagai perlengkapan dengan biaya yang besar, sementara dana yang dimiliki tidak mencukupi. Oleh karena itu, sebaiknya Andi ...",o:["Berusaha secara mandiri menyelesaikan tugas sebaik mungkin dan tidak perlu meminta pertimbangan warga lainnya","Melaksanakan tugas dengan membelanjakan dana seadanya tanpa banyak bertanya","Merencanakan pertemuan dengan warga jika tidak menemukan solusi mengenai pendanaan acara","Membangun dialog dengan warga secara intensif untuk mendapatkan cara menambah dana","Menceritakan permasalahan kekurangan dana kepada warga agar warga mengerti kesulitannya"],p:[1,2,4,5,3]},
+{s:"TKP",t:"Jejaring Kerja",q:"Pada saat pemilihan, Pak Sabar terpilih menjadi ketua RT. Pak Sabar ingin menolak karena sangat sibuk dengan pekerjaan di kantornya, tetapi warga tetap menghendaki Pak Sabar menjadi ketua RT. Menghadapi situasi tersebut, Pak Sabar sebaiknya ...",o:["Berpikir bahwa para tetangga telah memaksakan kehendak kepada Pak Sabar untuk menjadi ketua RT","Menunjukkan sikap yang tidak bersahabat kepada para tetangga yang telah memilihnya menjadi ketua RT","Memberikan alasan kesibukan dalam pekerjaan untuk membatalkan putusan warga memilihnya menjadi ketua RT","Meyakinkan diri untuk menjalankan dengan sebaik-baiknya hasil putusan pemilihan ketua RT yang telah disepakati warga","Menerima proses demokrasi yang ada dan aktif meyakinkan warga bahwa mereka bisa mencapai tujuan bersama"],p:[3,1,2,4,5]},
+{s:"TKP",t:"Jejaring Kerja",q:"Rian bercita-cita menjadi musisi profesional. Orang tua Rian mendukung anaknya dengan membelikan alat musik dan menyediakan studio untuk latihan. Walaupun demikian, Rian tetap merasa kesulitan mengembangkan bakat karena selama ini ia berlatih musik sendirian. Sebaiknya Rian ...",o:["Terbuka pada ajakan orang lain jika ada yang mengajaknya berlatih bersama","Menawari teman dan tetangganya untuk berlatih musik di studio yang ia miliki","Mengundang teman-temannya untuk berlatih bersama dengan imbalan tertentu","Mencari alternatif cara yang bisa dilakukan untuk mengembangkan kemampuannya bermain musik","Membentuk grup band yang secara rutin berlatih untuk mengembangkan bakat bermusik yang dimiliki"],p:[3,4,2,1,5]},
+{s:"TKP",t:"Jejaring Kerja",q:"Perayaan ulang tahun sekolah Edo direncanakan meriah dengan mengundang artis ibu kota. Namun, keterbatasan dana menjadi hambatan yang tidak bisa dihindari. Sebagai ketua panitia perayaan ulang tahun sekolah, Edo sebaiknya ...",o:["Menjalankan tugasnya dengan mencari tambahan dana semaksimal mungkin walaupun tidak dibantu oleh para anggotanya","Aktif membangun kerja sama dengan pihak-pihak yang selama ini belum pernah dilibatkan dalam penggalangan dana","Menerima tawaran bantuan bila ada pihak yang menawarkan bantuan untuk pelaksanaan perayaan ulang tahun sekolah","Menggerakkan semua panitia dalam menggalang dana dari para donatur, baik donatur lama maupun yang baru","Aktif menghubungi donatur-donatur yang sebelumnya berperan serta dalam setiap kegiatan sekolah"],p:[1,4,2,5,3]},
+{s:"TKP",t:"Jejaring Kerja",q:"Sekolah Farhan akan mengadakan acara perkemahan di lokasi yang telah diputuskan dalam rapat guru. Farhan merasa tidak nyaman dengan lokasi tersebut. Untuk menghadapi hal itu, sebaiknya Farhan berpikir bahwa ...",o:["Menyetujui lokasi hasil keputusan rapat mungkin akan lebih baik baginya","Acara kemah bisa dilaksanakan untuk kebersamaan walaupun kurang nyaman dengan lokasi yang telah ditetapkan","Perkemahan bisa dilaksanakan jika diadakan rapat dengar pendapat antara guru dan murid tentang penentuan lokasi","Ia tidak perlu berpartisipasi dalam kegiatan perkemahan karena memang tidak wajib","Keikutsertaan semua pihak menjadi faktor utama untuk membangun kebersamaan"],p:[3,2,5,1,4]},
+/* ---------------- TKP : TIK ---------------- */
+{s:"TKP",t:"Teknologi Informasi",q:"Derry menyadari bahwa ia mudah lupa. Ia sering kali melewatkan jadwal kegiatan rapat organisasi. Ia disarankan untuk menggunakan aplikasi pengingat di telepon genggamnya. Sikap Derry adalah ...",o:["Mulai mencoba menggunakan aplikasi pengingat ketika ia merasa kegiatannya sedang sangat padat","Menggunakan aplikasi pengingat untuk membantunya mengatur waktu dalam mengikuti kegiatan organisasi","Menggali pemanfaatan aplikasi pengingat untuk membantu mengatur kegiatan seluruh tim di organisasinya","Merasa lebih nyaman untuk mulai merapikan catatan kegiatan hariannya di buku agenda mingguan","Menggunakan fitur-fitur pada aplikasi pengingat agar ia dapat merinci setiap kegiatannya dengan lebih baik"],p:[2,5,4,1,3]},
+{s:"TKP",t:"Teknologi Informasi",q:"Siska adalah seorang ibu rumah tangga. Dalam kesehariannya, banyak keperluan rumah tangga yang menuntut ia bertransaksi di bank. Petugas bank menyarankan Siska menggunakan aplikasi perbankan berbasis daring. Namun, Siska tidak terbiasa. Sikap Siska ialah ...",o:["Mempelajari penggunaan aplikasi perbankan berbasis daring untuk memudahkannya dalam bertransaksi kebutuhan sehari-hari","Menunda memasang aplikasi perbankan berbasis daring di ponselnya sampai ia yakin bisa menggunakannya","Mencari tahu tentang berbagai aplikasi perbankan berbasis daring yang bisa ia manfaatkan untuk memenuhi kebutuhan sehari-hari","Mencoba cari tahu tentang manfaat menggunakan aplikasi perbankan berbasis daring atas saran suaminya","Mencoba memasang aplikasi perbankan berbasis daring di ponselnya sesuai dengan saran petugas bank yang sedang berpameran di mal"],p:[5,1,4,2,3]},
+{s:"TKP",t:"Teknologi Informasi",q:"Di sekolah Friska mulai diajarkan cara membuat video blog untuk mata pelajaran seni drama. Video blog itu untuk menyebarluaskan kreasi para siswa. Friska terkendala karena belum memiliki kamera yang memadai untuk membuat video blog. Sikap Friska yaitu ...",o:["Meyakini bahwa dengan video blog akan memudahkan dirinya untuk mempromosikan hasil kreasinya","Merasa bahwa membuat video blog mengharuskannya mengeluarkan banyak biaya untuk membeli kamera","Menyetujui bahwa melalui video blog akan meningkatkan motivasi dan ide rekan-rekan di kelas untuk berkreasi","Merasa antusias karena reputasi sekolah dalam hal seni drama akan semakin meningkat karena publikasi daring","Menganggap media publikasi hasil kreasi siswa masih dapat dilakukan dengan pemberitaan di media cetak"],p:[4,2,5,3,1]},
+{s:"TKP",t:"Teknologi Informasi",q:"Seorang guru mengenalkan program berbasis daring pembelajaran jarak jauh yang pertemuan belajar-mengajarnya tidak harus selalu di kelas. Penggunaan program ini memerlukan ketelitian agar tugas yang dikirimkan tidak tertukar. Randi sebagai ketua kelas sebaiknya ...",o:["Meminta kepada guru tersebut untuk diajari lebih lanjut mengenai program yang dapat diterapkan untuk semua mata pelajaran","Bertanya kepada satu guru mengenai cara penggunaan program agar bisa dimanfaatkan untuk menyelesaikan tugas kelompoknya","Mempelajari program tersebut setelah teman-teman yang lain sudah memahaminya dan apabila dirasa memerlukan program tersebut","Membaca tutorial penggunaan program tersebut agar dapat memudahkan penyelesaian tugas-tugas sekolahnya","Mempelajari program tersebut hanya pada beberapa mata pelajaran yang memang memerlukan kecanggihan teknologi"],p:[3,4,2,5,1]},
+{s:"TKP",t:"Teknologi Informasi",q:"Untuk menarik investor, Gaby sebagai sekretaris pimpinan perusahaan diminta membuat presentasi program terbaru. Namun program tersebut memiliki lebih banyak fitur dan berbeda dengan program presentasi sebelumnya. Sikap Gaby ialah ...",o:["Mempelajari program presentasi tersebut agar dapat membantu rekan-rekan kerja membuat presentasi kepada investor","Meminta staf TI membuatkan presentasi dengan program presentasi tersebut menggunakan materi yang ada","Menguasai program presentasi tersebut agar dapat menggunakannya pada kegiatan yang lain di tempat pimpinan melakukan presentasi","Mencari tahu cara menggunakan program presentasi terbaru agar dapat menyelesaikan tugas sesuai dengan yang diminta","Untuk saat ini tetap menggunakan program presentasi yang sudah dikuasainya untuk menampilkan materi presentasi yang diminta"],p:[3,2,4,5,1]},
+{s:"TKP",t:"Teknologi Informasi",q:"Perusahaan tempat Rodi bekerja berada di wilayah rawan gempa. Bulan ini baru saja terjadi gempa sehingga pimpinan menugasi Rodi untuk mencari teknologi deteksi dini gempa. Di sisi lain, Rodi masih memiliki banyak tugas yang belum diselesaikannya. Sikap Rodi adalah ...",o:["Mencari informasi tentang teknologi deteksi dini dengan mengacu pada berbagai perusahaan yang sudah menerapkannya","Mulai mencari informasi-informasi tentang teknologi deteksi dini yang menarik minatnya di internet","Mulai mencari informasi tentang teknologi deteksi dini karena menurut rekan-rekannya teknologi tersebut diperlukan perusahaan","Mulai mencari informasi tentang teknologi deteksi dini agar kinerjanya dapat dinilai baik oleh pimpinan perusahaan","Mulai mencari cara untuk mengantisipasi gempa tanpa perlu memasang teknologi deteksi dini di perusahaannya"],p:[4,5,3,2,1]},
+{s:"TKP",t:"Teknologi Informasi",q:"Seorang kepala bagian menginstruksikan agar setiap unit kerja di perusahaan memiliki perangkat lunak masing-masing untuk meningkatkan kinerja. Sebagai kepala bagian administrasi, Rihana sebaiknya ...",o:["Mempelajari perangkat lunak yang digunakan perusahaan sebagai upaya untuk menyamakan kualitas pekerja","Menggunakan perangkat lunak tersebut untuk menyelesaikan tugasnya agar lebih cepat dan akurat","Mempelajari cara kerja perangkat lunak di unit kerjanya agar dapat meningkatkan hasil kinerja semua anggota tim","Berusaha mempelajari dan menggunakan perangkat lunak tersebut walaupun memerlukan waktu yang lebih lama","Masih tetap menggunakan cara manual dalam menyelesaikan tugas kerjanya sehari-hari"],p:[3,4,5,2,1]},
+/* ---------------- TKP : SOSIAL BUDAYA ---------------- */
+{s:"TKP",t:"Sosial Budaya",q:"Fahrul berasal dari suku tertinggal yang saat ini kuliah di kota besar. Ia ikut himpunan mahasiswa yang anggotanya beragam latar belakang. Ia sering salah memahami instruksi sehingga kinerjanya rendah. Apa yang seharusnya dilakukan Fadli sebagai ketua?",o:["Mendiskusikan dengan anggota lain mengenai cara membantu Fahrul agar cepat memahami instruksi","Mengumpulkan informasi mengenai budaya Fahrul agar tidak lagi terjadi kesalahan memahami instruksi","Menuntut Fahrul untuk berkinerja seperti anggota lain agar tujuan organisasi tercapai","Bertanya kepada salah satu teman yang mengenal Fahrul mengenai budaya Fahrul di daerah","Meminta Fahrul menceritakan budayanya agar menemukan cara tepat untuk menyampaikan instruksi"],p:[5,4,1,3,2]},
+{s:"TKP",t:"Sosial Budaya",q:"Di kantor tampak ada dominasi karyawan yang berasal dari satu suku tertentu. Salah satu dari rekan kerja Anda memiliki sifat buruk dan ia merupakan bagian dari suku tersebut. Bagaimana sikap Anda?",o:["Memahami bahwa sifat buruk seorang karyawan bersifat pribadi yang tidak dipengaruhi oleh faktor suku","Mengingatkan rekan kerja lain untuk bersikap objektif dan menghormati siapa pun dari suku apa pun","Menilai bahwa sifat buruk itu hanya dimiliki karyawan itu saja, tidak pada semua karyawan dari suku tersebut","Menjauhi semua karyawan yang berasal dari suku tersebut karena sifat buruk itu hasil dari internalisasi budaya suku","Mencari informasi kekhasan nilai positif dari suku tersebut dan memahami mengapa terjadi dominasi karyawan dari suku tersebut"],p:[3,5,2,1,4]},
+{s:"TKP",t:"Sosial Budaya",q:"Saat Anda melakukan kegiatan kuliah lapangan di desa selama dua bulan, beberapa warga mengeluhkan kebiasaan Anda dan teman-teman yang sering rapat dan berbincang dengan rekan lokasi sampai larut malam. Apa yang seharusnya Anda lakukan?",o:["Mengingatkan teman Anda dan tidak berbincang hingga larut malam","Apabila sedang berkumpul dengan teman dibatasi tidak sampai larut malam","Berusaha untuk membiasakan diri dengan membatasi jam berkumpul","Menanyakan apa yang membuat perilaku mereka dikeluhkan oleh warga","Tetap melakukannya karena keluhan warga merupakan hal yang wajar dan biasa"],p:[5,4,3,2,1]},
+{s:"TKP",t:"Sosial Budaya",q:"Teguh ditolak oleh Amin dan Leo ketika ditunjuk sebagai ketua kelompok penelitian karena ia berasal dari daerah. Budi tidak ingin mengecewakan Amin dan Leo, tetapi juga ingin menghargai kemampuan Teguh walaupun merupakan orang daerah. Apa yang sebaiknya dilakukan oleh Budi?",o:["Menerima Teguh jika yang lain setuju atas penunjukan Teguh sebagai ketua kelompok penelitian","Mengusulkan agar Teguh diberikan kesempatan untuk menjadi ketua kelompok penelitian","Menyetujui pandangan Amin tentang Teguh sebagai orang daerah","Meminta Amin mengenali kemampuan Teguh sebelumnya","Mengajak semua teman-teman kelompok untuk menghargai Teguh sebagai orang daerah"],p:[3,4,1,2,5]},
+{s:"TKP",t:"Sosial Budaya",q:"Ali adalah karyawan yang tingkat kehadirannya rendah pada bulan tertentu sehingga mengganggu kinerjanya. Sebagai pimpinan Ali, Aldo mendapatkan informasi bahwa Ali sering izin karena merayakan ritual keagamaannya yang banyak. Apa yang harus dilakukan Aldo?",o:["Tidak memberikan izin kepada Ali untuk melakukan ritual keagamaannya karena mengganggu kinerjanya","Mencari informasi mengenai ritual-ritual keagamaan sesuai dengan agama yang dianut oleh Ali","Menggali informasi dari Ali mengenai ritual-ritual keagamaan yang harus dilakukannya","Menjelaskan tentang aturan kerja dan berdiskusi dengan Ali tentang cara untuk menyesuaikan diri antara bekerja dan beribadah","Berusaha berdiskusi dengan Ali dan karyawan lain tentang aturan kehadiran yang disesuaikan dengan kebutuhan beribadah"],p:[1,2,3,5,4]},
+{s:"TKP",t:"Sosial Budaya",q:"Angga berada dalam satu kelas dengan Billy yang berasal dari Amerika. Ia merasa terganggu karena Billy sering memakai kaus dan celana pendek di kelas. Namun, Angga sadar bahwa ia adalah pendamping mahasiswa asing yang bertugas mengenalkan Billy kepada teman-temannya. Apa yang seharusnya dilakukan Angga?",o:["Duduk berdekatan dengan Billy ketika terpaksa","Menjauhi Billy dan tidak mau berteman dengannya","Menemani Billy dan perlahan mengajarinya tentang budaya setempat","Bertegur sapa sewajarnya tanpa basa-basi","Memberi tahu Billy bahwa caranya berpakaian tidak sesuai dengan norma setempat"],p:[2,1,5,3,4]},
+{s:"TKP",t:"Sosial Budaya",q:"Afif sering bercanda dengan orang lain termasuk rekan kerja yang senior. Sikap Afif membuat beberapa rekan yang lebih senior menganggapnya tidak sopan sehingga mengganggu komunikasi kerja dengan rekan senior. Yang dapat dilakukan Dimas sebagai rekan kerja Afif adalah ...",o:["Tidak mengambil tindakan apa pun karena hal tersebut merupakan urusan pribadi Afif","Meminta sahabat dekat Afif memberitahunya agar lebih berhati-hati saat berkomunikasi","Menjelaskan pada rekan kerja yang lain bahwa Afif memang orang yang ramah dan riang","Memberi tahu Afif dan rekan kerja yang lain agar saling memahami dan menerima satu dengan yang lain","Memberi pengertian pada rekan kerja yang lain agar mau mengerti bahwa Afif tidak berniat menyinggung mereka"],p:[1,2,3,5,4]},
+{s:"TKP",t:"Sosial Budaya",q:"Fuad memimpin proyek pembangunan double track kereta api yang melintasi Desa Tempuran. Tiga bulan proyek mangkrak dan diprotes warga karena proyek ini melintasi masjid keramat asal-usul Desa Tempuran. Hal yang dapat dilakukan Fuad adalah ...",o:["Segera melanjutkan proyek karena sudah terlambat dari jadwal yang direncanakan","Mengajak anak buahnya dan warga desa untuk bermusyawarah","Memerintahkan anak buahnya untuk menghormati masjid keramat itu","Memerintahkan anak buahnya untuk menghentikan sementara proyek","Bertanya kepada warga tentang alasan protes warga tersebut"],p:[1,5,4,3,2]},
+/* ---------------- TKP : ANTI RADIKALISME ---------------- */
+{s:"TKP",t:"Anti Radikalisme",q:"Anwar dan Sanusi adalah dua warga masyarakat yang tinggal di desa yang letaknya berdampingan. Kedua orang tersebut menjadi provokator setiap terjadinya tawuran antardesa yang berbeda tersebut. Tawuran antardesa menimbulkan kerugian, baik harta maupun nyawa. Andaikan Anda tinggal di salah satu desa tersebut, apa yang Anda lakukan?",o:["Saya merasa menyelesaikan masalah tawuran antarwarga harus dimulai dari keinginan warga","Saya berpikir mediasi perlu dilakukan dalam masalah ini","Meminta ketua lingkungan untuk melibatkan unsur masyarakat untuk menjaga keamanan dan stabilitas lingkungan","Tidak bosan mengingatkan Anwar dan Sanusi mengenai pentingnya perdamaian antarwarga","Aktif membantu perangkat lingkungan untuk menyosialisasikan cara-cara penyelesaian persoalan tawuran antarwarga kepada semua pihak"],p:[2,1,4,3,5]},
+{s:"TKP",t:"Anti Radikalisme",q:"Andi adalah ketua OSIS. Pada tahun ajaran ini sekolah mendapat giliran sebagai tuan rumah kegiatan pertukaran pelajar. Banyak perilaku yang berbeda dari murid-murid tersebut. Beberapa di antaranya dirasakan mengganggu dirinya dan juga teman-temannya. Hal yang Andi lakukan adalah ...",o:["Tidak perlu memedulikan karakter murid-murid tersebut karena pertukaran pelajar hanya sementara","Mengajak bicara salah satu murid tersebut untuk sekadar dapat memahami karakter murid-murid tersebut","Menghubungi guru sekolah untuk mendapatkan kejelasan mengenai karakter murid-murid tersebut","Bersama teman-teman melakukan pendekatan agar didapat pemahaman yang utuh mengenai mereka","Membangun dialog dengan beberapa dari mereka agar dapat memahami karakter yang ada"],p:[1,2,3,5,4]},
+{s:"TKP",t:"Anti Radikalisme",q:"Luki adalah warga baru di lingkungan Anda. Ia sering bertengkar dengan warga sekitar yang dianggapnya tidak satu kepercayaan dengannya. Luki adalah teman masa kecil Anda. Sebagai teman, yang Anda lakukan adalah ...",o:["Mendukung pendirian Luki bahwa hal itu adalah kebebasan setiap orang dalam bergaul","Membiarkan sikap Luki tersebut asal ia berjanji tidak bertengkar dengan warga lainnya","Mencari hal terkait sikap Luki sebagai bahan untuk mencari solusi permasalahan","Meminta bantuan dari pihak keluarga dan orang dekat Luki agar Luki berhenti memusuhi warga lain","Mengajak Luki untuk berdialog dengan melibatkan warga di lingkungan tempat tinggalnya agar mereka hidup harmonis"],p:[1,2,3,4,5]},
+{s:"TKP",t:"Anti Radikalisme",q:"Bombom adalah salah satu pemimpin ormas keagamaan di kampus, tetapi pemikirannya cenderung radikal sehingga membuat organisasinya dicap ekstrem. Sebelumnya organisasi tersebut sangat terkenal dengan kesantunan dan cinta damai, sehingga sebagian anggota memikirkan cara untuk menyelamatkan organisasi ini. Sebagai anggota, apa yang Anda lakukan?",o:["Mengajak beberapa teman yang berkomitmen melakukan tindakan penyelamatan organisasi dan penyusunan program","Menyusun strategi untuk membuat berbagai kegiatan organisasi yang mempertahankan nilai-nilai cinta damai","Memiliki keinginan untuk mempertahankan kegiatan organisasi yang selalu menjunjung tinggi kehidupan yang cinta damai","Memahami adanya ketidakseimbangan dalam organisasi, tetapi belum memiliki program yang sesuai","Belum merasakan akibat langsung yang negatif dari tindakan Bombom sehingga bersikap netral saja"],p:[4,5,3,2,1]},
+{s:"TKP",t:"Anti Radikalisme",q:"Karena diusung oleh beberapa partai koalisinya, Pak Ruslan berhasil terpilih menjadi kepala daerah di kotanya. Ia memiliki visi mewujudkan kota yang menjunjung nilai cinta damai. Namun, sebagian masyarakat meragukan kemampuannya untuk memimpin warga yang sangat heterogen. Apa yang harus dilakukan Pak Ruslan?",o:["Meyakinkan bahwa perdamaian akan tercipta jika masyarakat mayoritas yang memilihnya dapat tetap solid mendukung","Memahami pentingnya perwujudan nilai cinta damai dalam masyarakat di kotanya","Memilih keinginan untuk membuat kebijakan yang mengutamakan nilai-nilai cinta damai dalam kehidupan bermasyarakat","Melakukan tindakan untuk mewujudkan kota yang masyarakatnya menjunjung tinggi suasana cinta damai","Menyusun program kota yang cinta damai dan mempresentasikan di hadapan aparat pemda untuk mendapat umpan balik"],p:[1,2,3,5,4]},
+{s:"TKP",t:"Anti Radikalisme",q:"Desti seorang warga baru yang tinggal di suatu lingkungan masyarakat. Di sana terdapat kelompok tertentu yang sering mengadakan pesta yang menggunakan musik dengan suara keras. Apa yang sebaiknya dilakukan Desti sebagai seorang warga baru?",o:["Berdiam diri seakan-akan tidak terjadi apa-apa","Bertanya kepada ketua RT setempat terkait situasi tersebut","Berdiskusi dengan tetangga lain mengenai situasi di lingkungan tersebut","Menjelaskan kepada kelompok tersebut untuk bisa menghormati warga di sekitarnya","Memberikan pengertian bahwa tindakan kelompok tersebut dapat mengganggu kenyamanan warga"],p:[1,5,4,3,2]},
+{s:"TKP",t:"Anti Radikalisme",q:"Suroso merupakan seorang tokoh pemuda di daerahnya. Saat ini Suroso diangkat menjadi ketua paguyuban dengan cakupan wilayah lebih luas dan memiliki kebiasaan-kebiasaan yang berbeda. Apa yang harus dilakukan oleh Suroso?",o:["Memberikan contoh bahwa kebiasaan baru dan kebiasaan lama dapat berjalan harmonis","Mengedepankan kebiasaan lama karena budaya lama lebih baik","Menerima kebiasaan baru tanpa harus menghilangkan kebiasaan lama","Mengembangkan kebiasaan lama agar dapat berjalan dengan kebiasaan baru","Menganjurkan dan mengajak masyarakat agar dapat menyinergikan kebiasaan-kebiasaan tersebut secara harmonis"],p:[4,1,3,2,5]}
+];
+
+/* ================== STATE ================== */
+const N=DATA.length, TOTAL_TIME=100*60, PG={TWK:65,TIU:80,TKP:166}, MAXS={TWK:150,TIU:175,TKP:225};
+let answers=new Array(N).fill(null), ragu=new Set(), idx=0, timeLeft=TOTAL_TIME, timerId=null, warned=false, finished=false;
+const $=id=>document.getElementById(id);
+const LTR=["A","B","C","D","E"];
+
+/* ================== LOGIN & START ================== */
+function doLogin(){
+  const nama=$("inpNama").value.trim(), nik=$("inpNIK").value.trim(), no=$("inpNoPeserta").value.trim(), pin=$("inpPIN").value.trim();
+  $("errNIK").style.display="none"; $("inpNIK").classList.remove("err");
+  let bad=false;
+  [[$("inpNama"),nama],[$("inpNIK"),nik],[$("inpNoPeserta"),no],[$("inpPIN"),pin]].forEach(([el,v])=>{el.classList.toggle("err",!v); if(!v)bad=true;});
+  if(!/^\d{16}$/.test(nik)){$("errNIK").style.display="block";$("inpNIK").classList.add("err");bad=true;}
+  if(bad)return;
+  $("loadOverlay").classList.add("show");
+  setTimeout(()=>{
+    $("loadOverlay").classList.remove("show");
+    [["pNama1",nama],["pNo1",no],["pNama2",nama],["pNIK2",nik],["pNo2",no],["pNama3",nama],["pNo3",no],["pNama4",nama],["pNo4",no]].forEach(([i,v])=>$(i).textContent=v);
+    $("loginScreen").classList.remove("active"); $("instScreen").classList.add("active");
+  },1400);
+}
+function startExam(){
+  $("instScreen").classList.remove("active"); $("examScreen").classList.add("active");
+  buildGrid(); render(); startTimer();
+}
+
+/* ================== TIMER ================== */
+function startTimer(){timerId=setInterval(()=>{timeLeft--;tick();
+  if(timeLeft===300&&!warned){warned=true;$("warnOverlay").classList.add("show");}
+  if(timeLeft<=0){clearInterval(timerId);$("timeupOverlay").classList.add("show");}
+},1000);tick();}
+function tick(){const h=String(Math.floor(timeLeft/3600)).padStart(2,"0"),m=String(Math.floor(timeLeft%3600/60)).padStart(2,"0"),s=String(timeLeft%60).padStart(2,"0");
+$("timerVal").textContent=`${h}:${m}:${s}`;$("timerBox").classList.toggle("danger",timeLeft<300);}
+
+/* ================== RENDER ================== */
+function buildGrid(){const g=$("numGrid");for(let i=0;i<N;i++){const b=document.createElement("button");b.className="nbtn";b.textContent=i+1;b.onclick=()=>{idx=i;render();};g.appendChild(b);}}
+function render(){
+  const q=DATA[idx];
+  const sb=$("secBadge");sb.textContent=q.s;sb.className="badge "+q.s.toLowerCase();
+  $("topicBadge").textContent=q.t;
+  $("qCounter").textContent=`Soal ${idx+1} dari ${N}`;
+  $("qText").textContent=q.q;
+  const ol=$("optList");ol.innerHTML="";
+  q.o.forEach((t,i)=>{const d=document.createElement("div");d.className="opt"+(answers[idx]===i?" sel":"");
+    d.innerHTML=`<div class="ltr">${LTR[i]}</div><div>${t}</div>`;
+    d.onclick=()=>{answers[idx]=i;ragu.delete(idx);render();toast();};ol.appendChild(d);});
+  $("btnRagu").textContent=ragu.has(idx)?"🚩 Hilangkan Ragu":"🚩 Ragu-Ragu";
+  $("btnPrev").disabled=idx===0;
+  $("btnNext").textContent=idx===N-1?"Simpan Jawaban":"Simpan & Lanjutkan ›";
+  // grid
+  const done=answers.filter(a=>a!==null).length;
+  [...$("numGrid").children].forEach((b,i)=>{b.className="nbtn"+(answers[i]!==null?" done":"")+(ragu.has(i)?" ragu":"")+(i===idx?" cur":"");});
+  $("stDone").textContent=`${done} / ${N}`;$("stLeft").textContent=N-done;$("stRagu").textContent=ragu.size;
+  $("progBar").style.width=(done/N*100)+"%";
+}
+function nextQ(){if(idx<N-1){idx++;render();}}
+function prevQ(){if(idx>0){idx--;render();}}
+function toggleRagu(){ragu.has(idx)?ragu.delete(idx):ragu.add(idx);render();}
+function askFinish(){const done=answers.filter(a=>a!==null).length;
+  $("finishMsg").innerHTML=`Anda telah menjawab <b>${done}</b> dari <b>${N}</b> soal.`+(done<N?` Masih ada <b>${N-done} soal belum dijawab</b> (nilai 0). `:"")+"Yakin ingin mengakhiri ujian?";
+  $("finishOverlay").classList.add("show");}
+function closeModal(id){$(id).classList.remove("show");}
+let toastT;function toast(){const t=$("toast");t.classList.add("show");clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove("show"),1200);}
+document.addEventListener("keydown",e=>{
+  if(!$("examScreen").classList.contains("active")||finished)return;
+  const k=e.key.toLowerCase();
+  if(["a","b","c","d","e"].includes(k)){answers[idx]=k.charCodeAt(0)-97;ragu.delete(idx);render();toast();}
+  else if(e.key==="ArrowRight")nextQ();
+  else if(e.key==="ArrowLeft")prevQ();
+});
+
+/* ================== RESULT ================== */
+function endExam(){
+  if(finished)return;finished=true;clearInterval(timerId);closeModal("finishOverlay");closeModal("timeupOverlay");
+  let sc={TWK:0,TIU:0,TKP:0}, cnt={TWK:0,TIU:0,TKP:0};
+  DATA.forEach((q,i)=>{cnt[q.s]++;
+    if(q.s==="TKP"){if(answers[i]!==null)sc.TKP+=q.p[answers[i]];}
+    else if(answers[i]===q.k)sc[q.s]+=5;});
+  const lulus=sc.TWK>=PG.TWK&&sc.TIU>=PG.TIU&&sc.TKP>=PG.TKP, total=sc.TWK+sc.TIU+sc.TKP;
+  $("examScreen").classList.remove("active");$("resultScreen").classList.add("active");
+  $("resStatusText").textContent=lulus?"LULUS ✔":"TIDAK LULUS ✘";
+  const pill=$("resPill");pill.textContent=lulus?"MEMENUHI PASSING GRADE":"TIDAK MEMENUHI PASSING GRADE";pill.className="pill "+(lulus?"lulus":"gagal");
+  const cells=[["TWK",sc.TWK,MAXS.TWK,PG.TWK],["TIU",sc.TIU,MAXS.TIU,PG.TIU],["TKP",sc.TKP,MAXS.TKP,PG.TKP],["TOTAL",total,550,null]];
+  $("resGrid").innerHTML=cells.map(([l,v,m,pg])=>`<div class="res-cell"><div class="lbl">${l}${pg?` · PG ${pg}`:" · Nilai Kumulatif"}</div>
+    <div class="val">${v}</div><div class="pg">${pg?(v>=pg?`<span class="ok">✔ Memenuhi</span>`:`<span class="no">✘ Di bawah PG</span>`):`dari ${m}`}</div>
+    <div class="bar"><i style="width:${Math.min(100,v/m*100)}%"></i></div></div>`).join("");
+  $("resDetail").innerHTML=cells.slice(0,3).map(([l,v,m,pg])=>`<div class="rrow"><span><b>${l}</b> — nilai maksimal ${m}</span>
+    <span>${v} / ${m} <span class="tag ${v>=pg?"ok":"no"}">${v>=pg?"LULUS":"GAGAL"}</span></span></div>`).join("")+
+    `<div class="rrow" style="border:none"><span><b>Total Nilai SKD</b></span><span><b>${total} / 550</b></span></div>`;
+  const blank=answers.filter(a=>a===null).length;
+  $("resNote").innerHTML=`Hasil dihitung otomatis oleh sistem berdasarkan jawaban yang tersimpan.<br>
+    • Soal terjawab: <b>${N-blank}</b> · kosong: <b>${blank}</b><br>
+    • Kelulusan SKD ditentukan oleh <b>nilai kumulatif tiap subtes</b> yang semuanya harus memenuhi passing grade.<br>
+    • Skor maksimal: TWK 150 · TIU 175 · TKP 225 (total 550).`;
+  buildReview();
+}
+function buildReview(){
+  let html="";["TWK","TIU","TKP"].forEach(sec=>{
+    html+=`<div class="rv-sec"><h4>${sec==="TWK"?"Tes Wawasan Kebangsaan":sec==="TIU"?"Tes Intelegensia Umum":"Tes Karakteristik Pribadi"} (${sec})</h4>`;
+    DATA.forEach((q,i)=>{if(q.s!==sec)return;const ua=answers[i];
+      let opts="";
+      q.o.forEach((t,oi)=>{
+        const isUser=ua===oi, isKey=q.s==="TKP"?oi===q.p.indexOf(Math.max(...q.p)):oi===q.k;
+        opts+=`<div class="rv-opt${isUser?" user":""}${isKey?" key":""}">${LTR[oi]}. ${t}${q.s==="TKP"?`<span class="pt">poin ${q.p[oi]}</span>`:""}</div>`;});
+      const stat=q.s==="TKP"?(ua!==null?`Poin ${q.p[ua]}/5`:"Tidak dijawab (0)"):(ua===q.k?"Benar (+5)":ua===null?"Tidak dijawab (0)":"Salah (0)");
+      html+=`<div class="rv-item"><div class="rq">Soal ${i+1} · ${q.t} — <span style="color:${q.s==="TKP"?(ua!==null&&q.p[ua]>=4?"#157a44":"#b93429"):(ua===q.k?"#157a44":"#b93429")}">${stat}</span></div>
+        <div style="margin-bottom:8px;line-height:1.6">${q.q.replace(/\n/g,"<br>")}</div>${opts}</div>`;});
+    html+="</div>";});
+  $("reviewBox").innerHTML=html;
+}
+function toggleReview(){$("reviewBox").classList.toggle("show");
+  if($("reviewBox").classList.contains("show"))$("reviewBox").scrollIntoView({behavior:"smooth"});}
+</script>
+</body>
+</html>
